@@ -4,13 +4,171 @@ import tkinter as tk
 import configparser
 import dearpygui.dearpygui as dpg
 from scipy.signal import bessel, sosfiltfilt, butter, iirnotch, zpk2sos, tf2zpk
+from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
+from globals import *
 
-def prepare_plots(cfg, data, colors):
+def create_filters():
+    # create filters
+    data_set('filter', build_filter(
+        cfg_get('filter_type'), 
+        cfg_get('band_type'),
+        cfg_get('filter_order'), 
+        cfg_get('filter_range'), 
+        cfg_get('sample_rate')
+    ))
+    b, a = iirnotch(60, 30, fs=30000)
+    sos = zpk2sos(*tf2zpk(b, a))
+    data_set('notch_sos', sos )
+
+def align_channel_labels(channel_type):
+    # ONLY CALL THIS IF YOU HAVE ANALOG DATA
+    prefix = 'a_' if channel_type == 'analog' else ''
+    for chan in range(cfg_get(f'max_{channel_type}_channels')):
+        if data_get('chan_info')[chan]['plot']:
+            dpg.show_item(f'{prefix}ch{chan}')
+            x_pos, y_pos = dpg.get_item_pos(f'{prefix}plot{chan}')
+            plot_height = cfg_get(f'{channel_type}_plot_heights')
+            dpg.set_item_pos(
+                f'{prefix}ch{chan}', 
+                [x_pos - 60, y_pos + plot_height / 2 - 14]
+            )
+        else:
+            dpg.hide_item(f'{prefix}ch{chan}')
+
+def color_channels():
+    # should color the channel labels and plots based on number of plots shown
+    pass
+
+def plot_data(plot_range):
+    for chan in range(cfg_get(f'max_amplif_channels')):
+        if data_get('chan_info')[chan]['plot']:
+            dpg.set_value(
+                f'{cfg["waveform_type"].lower()}_data_{chan}',
+                [
+                    list(range(*plot_range)),
+                    list(data[f'{cfg["waveform_type"].lower()}_data'][
+                        chan, plot_range[0]:plot_range[1]
+                    ])
+                ]
+            )
+            dpg.configure_item(f'yaxis_tag{chan}', lock_min=False, lock_max=False)
+            dpg.fit_axis_data(f'yaxis_tag{chan}')
+            dpg.configure_item(f'yaxis_tag{chan}', lock_min=True, lock_max=True)
+
+    if data_get('analog_data') is not None:
+        for chan in range(cfg_get('max_analog_channels')):
+            dpg.set_value(
+                f'analog_data_{chan}',
+                [
+                    list(range(*plot_range)),
+                    list(data['analog_data'][
+                        chan, plot_range[0]:plot_range[1]
+                    ])
+                ]
+            )
+            dpg.configure_item(f'a_yaxis_tag{chan}', lock_min=False, lock_max=False)
+            dpg.fit_axis_data(f'a_yaxis_tag{chan}')
+            dpg.configure_item(f'a_yaxis_tag{chan}', lock_min=True, lock_max=True)
+
+
+def buffer_handler(new_limits):
+    # compares the visible limits to the new_limits (from zooming or dragging)
+    # checks if new limits go beyond the buffer, redraws buffer if so
+    # DOES NOT SET NEW LIMITS?
+    # handle out of bounds for dragging / zoom?
+
+    visible_range = cfg_get('visible_range')
+
+    # BUFFER LOGIC:
+    # buffer = 50% of visible range is added to each side of the visible range
+    # meaning that it it not visible, but is loaded in memory in case of a drag
+    # or zoom that would reveal it
+    # when a new zoom/pan is performed, if the new limits are outside of the 
+    # first 25% of the buffer, max/min visible +/- (buffer * 0.25)), then redraw
+    # the buffer with the new limits
+    
+    # get the buffer and view limits
+    buffer = int((visible_range[1] - visible_range[0]) * cfg_get('buffer_mult'))
+    view_limit = buffer * 0.5
+
+    # if the new limits are outside of the first 25% of the buffer, redraw
+    if (
+        new_limits[0] < visible_range[0] - view_limit or \
+        new_limits[1] > visible_range[1] + view_limit
+    ):
+        plot_range = (
+            int(max(new_limits[0] - buffer, 0)), 
+            int(min(new_limits[1] + buffer, data_get('n_samples')))
+        )
+        cfg_set('visible_range', new_limits)
+        plot_data(plot_range)
+
+def align_axes(sender, new_limits):
+    visible_range = cfg_get('visible_range')
+    if visible_range == new_limits: return
+    buffer_handler(new_limits)
+
+    if sender == 'amplif_plots_group':
+        # align analog plots, time axis, and time controls
+        if data_get('analog_data') is not None:
+            for i in range(cfg_get('max_analog_channels')):
+                dpg.set_axis_limits(f'a_xaxis_tag{i}', *new_limits)
+        dpg.set_axis_limits(
+            'xaxis_label_tag', *[int(i / 30) for i in new_limits]
+        )
+        start_time = new_limits[0] / cfg_get('sample_rate')
+        full_time = data_get('n_samples') / cfg_get('sample_rate')
+        _, full_m, full_s = sec_to_hms(full_time)
+        _, start_m, start_s = sec_to_hms(start_time)
+
+        dpg.set_value(
+            'time_text', 
+            f'{start_m:02d}:{start_s:02d} / {full_m:02d}:{full_s:02d}'
+        )
+        dpg.set_value('time_slider', start_time)
+
+    elif sender == 'analog_plots_group':
+        # align amplif plots, time axis, and time controls
+        print('analog plots group')
+
+    elif sender == 'time_slider':
+        # align amplif plots and analog plots, and time axis
+        print('time slider')
+
+    else: # align all (skip time & play)
+        # align amplif plots and analog plots, and time axis and time controls
+        print(sender)
+
+
+# def plot_chan_spk_panel(cfg, data):
+
+# Function to adjust the brightness and saturation of colors
+def adjust_color_brightness_saturation(rgb_colors, brightness_factor, saturation_factor):
+    # Convert RGB colors to HSV
+    hsv_colors = rgb_to_hsv(rgb_colors)
+    
+    # Adjust brightness (value) and saturation
+    hsv_colors[:, 1] *= saturation_factor
+    hsv_colors[:, 2] *= brightness_factor
+    
+    # Make sure no value exceeds 1.0
+    hsv_colors[hsv_colors > 1.0] = 1.0
+    
+    # Convert back to RGB
+    adjusted_rgb_colors = hsv_to_rgb(hsv_colors)
+    
+    # Normalize the adjusted colors to the range of 0 to 255 for display
+    adjusted_rgb_colors_scaled = [(int(r*255), int(g*255), int(b*255), 255) for r, g, b in adjusted_rgb_colors]
+    
+    return adjusted_rgb_colors_scaled
+
+def prepare_plots():
     # get the channels to plot
+    colors = cfg_get('colors')
     chans_to_plot = []
     ratios = []
-    for chan in range(cfg['max_amplif_channels']):
-        c_info = data['chan_info'][chan]
+    for chan in range(cfg_get('max_amplif_channels')):
+        c_info = data_get('chan_info')[chan]
         if c_info['plot'] and c_info['incl']:
             chans_to_plot.append(chan)
             # show the correct line series
@@ -18,18 +176,18 @@ def prepare_plots(cfg, data, colors):
                 f'{cfg["waveform_type"].lower()}_data_{chan}', 
                 show=True
             )
-            ratios.extend([1, int(cfg['show_spikes'])])
+            ratios.extend([1, int(cfg_get('show_spikes'))])
         else:
             # dpg.configure_item(f'plot{chan}', show=False)
             ratios.extend([0, 0])
             
     n_ch_to_plot = len(chans_to_plot)
     # resize the amplif plots to match the new number of channels
-    min_height = int(cfg['amplif_plots_height'] / n_ch_to_plot)
-    cfg['amplif_plot_heights'] = max(cfg['amplif_plot_heights'], min_height)
+    min_height = int(cfg_get('amplif_plots_height') / n_ch_to_plot)
+    cfg_set('amplif_plot_heights', max(cfg_get('amplif_plot_heights'), min_height))
     dpg.configure_item(
         'amplif_plots', 
-        height=cfg['amplif_plot_heights'] * n_ch_to_plot,
+        height=cfg_get('amplif_plot_heights') * n_ch_to_plot,
         row_ratios=ratios
     )
     for idx, chan in enumerate(chans_to_plot):
@@ -41,21 +199,33 @@ def prepare_plots(cfg, data, colors):
         # set axis limits
         dpg.set_axis_limits(
             f'xaxis_tag{chan}', 
-            cfg['visible_range'][0],
-            cfg['visible_range'][1]
+            cfg_get('visible_range')[0],
+            cfg_get('visible_range')[1]
         )
-    for chan in range(cfg['max_analog_channels']):
-        color = f'color_{chan % len(colors)}'
-        # set to the correct color
-        dpg.bind_item_theme(f'analog_data_{chan}', color)
-        dpg.bind_item_theme(f'a_ch{chan}', color)
-        # set axis limits
-        dpg.set_axis_limits(
-            f'a_xaxis_tag{chan}', 
-            cfg['visible_range'][0],
-            cfg['visible_range'][1]
+    if data_get('analog_data') is not None:
+        for chan in range(cfg_get('max_analog_channels')):
+            color = f'color_{chan % len(colors)}'
+            # set to the correct color
+            dpg.bind_item_theme(f'analog_data_{chan}', color)
+            dpg.bind_item_theme(f'a_ch{chan}', color)
+            # set axis limits
+            dpg.set_axis_limits(
+                f'a_xaxis_tag{chan}', 
+                cfg_get('visible_range')[0],
+                cfg_get('visible_range')[1]
+            )
+    else:
+        cfg_set('amplif_plots_height', cfg_get('amplif_plots_height') * 1 / 0.9)
+        dpg.configure_item(
+            'amplif_plots_child',
+            height=cfg_get('amplif_plots_height')
         )
-    return cfg
+        dpg.configure_item(
+            'amplif_plots',
+            height=cfg_get('amplif_plots_height')
+        )
+        dpg.hide_item('analog_plots_child')
+        # amplif_plots_child
 
 def build_filter(filter_type, band_type, filt_order, filt_range, fs):
     filt_range = filt_range[1] if band_type == 'Lowpass' \
@@ -102,6 +272,7 @@ def get_screen_size():
     # close the temporary window
     root.destroy() 
     return screen_height, int(screen_width)
+    # return screen_height - 200, int(screen_width) - 700
 
 def get_max_viewport_size():
     """Retrieve the max viewport height and width in pixels."""
@@ -121,41 +292,6 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath('.')
     return os.path.join(base_path, relative_path)
-
-def get_settings_path(app_name='EphysViz', filename='settings.ini'):
-    """Return the path to the settings file for a given app."""
-    if sys.platform.startswith('win'): # windows
-        settings_dir = os.path.join(os.environ['APPDATA'], app_name)
-    elif sys.platform.startswith('darwin'): # mac
-        settings_dir = os.path.join(
-            os.path.expanduser('~/Library/Application Support/'), app_name)
-    else:  # linux and other platforms
-        settings_dir = os.path.join(os.path.expanduser('~'), f'.{app_name}')
-    # create the settings directory if it doesn't exist
-    if not os.path.exists(settings_dir):
-        os.makedirs(settings_dir)
-    return os.path.join(settings_dir, filename)
-
-def write_settings(section, setting, value, filename='settings.ini'):
-    """Write a setting value to a configuration file."""
-    config = configparser.ConfigParser()
-    settings_path = get_settings_path()
-    if os.path.exists(settings_path):
-        config.read(settings_path)
-    if section not in config.sections():
-        config.add_section(section)
-    config.set(section, setting, value)
-    with open(settings_path, 'w') as configfile:
-        config.write(configfile)
-
-def read_settings(section, setting, default=None, filename="settings.ini"):
-    """Read a setting value from a configuration file, returning default if not 
-    found."""
-    config = configparser.ConfigParser()
-    settings_path = get_settings_path()
-    config.read(settings_path)
-    return config.get(section, setting) if config.has_option(section, setting) \
-           else default
 
 
 
