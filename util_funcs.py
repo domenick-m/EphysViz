@@ -1,14 +1,25 @@
 import os
 import sys
-import timeit
-import tkinter as tk
-import configparser
-import dearpygui.dearpygui as dpg
-from scipy.signal import bessel, sosfiltfilt, butter, iirnotch, zpk2sos, tf2zpk
-from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
-from globals import *
 import numpy as np
+import tkinter as tk
 import scipy.signal as signal
+import dearpygui.dearpygui as dpg
+from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
+from scipy.signal import bessel, sosfiltfilt, butter, iirnotch, zpk2sos, tf2zpk
+from globals import *
+
+#------------------------------------------------------------------------------#
+#                                  ETC FUNCS                                   #
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+#                                  PLOT FUNCS                                  #
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+#                                   UI FUNCS                                   #
+#------------------------------------------------------------------------------#
+
 
 def set_plot_heights(first_plot=False):
     # SHOULD SPLIT FRAME AFTER THIS AND ALIGN CHANNEL LABELS
@@ -59,6 +70,7 @@ def set_plot_heights(first_plot=False):
     )
     return chans_to_plot
 
+
 def get_crossings():
     # get thresholds for each channel
     idx = 0
@@ -87,7 +99,8 @@ def get_crossings():
             # print(cross.shape)
             data_set(f'crossings_{chan}', cross_)
             idx+=1
-        
+
+
 def prepare_spike_panels():
     panel_chan = int(dpg.get_value('spk_sco_ch').split('Ch ')[1])
     spike_range = cfg_get('spike_start'), cfg_get('spike_end')
@@ -204,6 +217,7 @@ def prepare_spike_panels():
                     show=False
                 )
 
+
 def plot_spikes():
     # should this be plot all at once or buffer like continuous data?
     
@@ -225,15 +239,13 @@ def plot_spikes():
             )
 
 
-
-
-
 def unfreeze_x_axes():
     for chan in range(cfg_get('max_amplif_channels')):
         dpg.set_axis_limits_auto(f'xaxis_tag{chan}')
     if data_get('analog_data') is not None:
         for chan in range(cfg_get('max_analog_channels')):
             dpg.set_axis_limits_auto(f'a_xaxis_tag{chan}')
+
 
 def update_impedance_table():
     for chan in range(cfg_get('max_amplif_channels')):
@@ -372,6 +384,7 @@ def prepare_psd():
     dpg.set_axis_limits('psd_yaxis_tag', -10000, p_max * 10)
     dpg.set_axis_limits('psd_xaxis_tag', -50, 1500)
 
+
 def create_filters():
     # create filters
     data_set('filter', build_filter(
@@ -384,6 +397,7 @@ def create_filters():
     b, a = iirnotch(60, 30, fs=30000)
     sos = zpk2sos(*tf2zpk(b, a))
     data_set('notch_sos', sos )
+
 
 def align_channel_labels():
     for channel_type in ['amplif', 'analog']:
@@ -402,6 +416,7 @@ def align_channel_labels():
                 else:
                     dpg.hide_item(f'{prefix}ch{chan}')
 
+
 def threshold_impedances():
     for chan in range(cfg_get('max_amplif_channels')):
         if data_get('impedances')[chan] > cfg_get('impedance_threshold') * 1000:
@@ -411,9 +426,11 @@ def threshold_impedances():
             set_ch_info(chan, 'incl', True)
             set_ch_info(chan, 'plot', True)
 
+
 def color_channels():
     # should color the channel labels and plots based on number of plots shown
     pass
+
 
 def plot_data_play(plot_range):
     # this version of plot data is for the play function, it deletes and re-adds
@@ -458,6 +475,7 @@ def plot_data_play(plot_range):
     )
     prepare_time_controls(plot_range)
 
+
 def plot_data(plot_range, first_plot=False):
     # store the first visible channel as the default channel (for axis limits)
     dc_set_amplif, dc_set_analog = False, False
@@ -491,7 +509,8 @@ def plot_data(plot_range, first_plot=False):
                     ])
                 ]
             )
-        
+
+
 def pre_fit_y_axes():
     for chan in range(cfg_get(f'max_amplif_channels')):
         if data_get('chan_info')[chan]['plot']:
@@ -503,6 +522,8 @@ def pre_fit_y_axes():
             dpg.configure_item(f'a_yaxis_tag{chan}', lock_min=False, lock_max=False)
             dpg.fit_axis_data(f'a_yaxis_tag{chan}')
             # dpg.configure_item(f'a_yaxis_tag{chan}', lock_min=True, lock_max=True)
+
+
 def post_fit_y_axes():
     for chan in range(cfg_get(f'max_amplif_channels')):
         if data_get('chan_info')[chan]['plot']:
@@ -514,6 +535,8 @@ def post_fit_y_axes():
             # dpg.configure_item(f'a_yaxis_tag{chan}', lock_min=False, lock_max=False)
             # dpg.fit_axis_data(f'a_yaxis_tag{chan}')
             dpg.configure_item(f'a_yaxis_tag{chan}', lock_min=True, lock_max=True)
+
+
 def fit_y_axes():
     for chan in range(cfg_get(f'max_amplif_channels')):
         if data_get('chan_info')[chan]['plot']:
@@ -525,6 +548,7 @@ def fit_y_axes():
             dpg.configure_item(f'a_yaxis_tag{chan}', lock_min=False, lock_max=False)
             dpg.fit_axis_data(f'a_yaxis_tag{chan}')
             dpg.configure_item(f'a_yaxis_tag{chan}', lock_min=True, lock_max=True)
+
 
 def buffer_handler(new_limits, first_plot=False):
     # compares the visible limits to the new_limits (from zooming or dragging)
@@ -558,6 +582,7 @@ def buffer_handler(new_limits, first_plot=False):
         )
         cfg_set('visible_range', new_limits)
         plot_data(plot_range, first_plot=first_plot)
+
 
 def align_axes(sender, new_limits, first_plot=False):
     visible_range = cfg_get('visible_range')
@@ -596,8 +621,9 @@ def align_axes(sender, new_limits, first_plot=False):
         )
         prepare_time_controls(new_limits)
 
-# Function to adjust the brightness and saturation of colors
+
 def adjust_color_brightness_saturation(rgb_colors, brightness_factor, saturation_factor):
+    # Function to adjust the brightness and saturation of colors
     # Convert RGB colors to HSV
     hsv_colors = rgb_to_hsv(rgb_colors)
     
@@ -616,7 +642,6 @@ def adjust_color_brightness_saturation(rgb_colors, brightness_factor, saturation
     
     return adjusted_rgb_colors_scaled
 
-# def
 
 def replot(first_plot=False):
     pass
@@ -669,6 +694,7 @@ def build_filter(filter_type, band_type, filt_order, filt_range, fs):
     else: return None
     return filter
 
+
 def filter_data(data, filter, notch_sos=None):
     data = data.T
     if notch_sos is not None:
@@ -699,11 +725,13 @@ def get_play_limits(last_update_time, current_time):
     new_end = new_start + lim_range
     return int(new_start), int(new_end)
 
+
 def sec_to_hms(total_secs):
     """Convert seconds to a tuple of hours, minutes, and seconds."""
     hours, remainder = divmod(int(total_secs), 3600)
     minutes, seconds = divmod(remainder, 60)
     return hours, minutes, seconds
+
 
 def get_screen_size():
     """Retrieve the screens height and width in pixels."""
@@ -717,6 +745,7 @@ def get_screen_size():
     # return screen_height, int(screen_width)
     return screen_height - 200, int(screen_width) - 500
 
+
 def get_max_viewport_size():
     """Retrieve the max viewport height and width in pixels."""
     # start the render loop and get the viewport size
@@ -726,6 +755,7 @@ def get_max_viewport_size():
         viewport_width = dpg.get_viewport_width()
         dpg.render_dearpygui_frame()
     return viewport_height, viewport_width
+
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
