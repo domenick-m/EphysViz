@@ -6,282 +6,780 @@ import numpy as np
 from scipy.signal import bessel, sosfiltfilt, butter, iirnotch, zpk2sos, tf2zpk
 
 
-def file_dialog_cb(sender, app_data, user_data):
-    dpg.hide_item("plots_window")
-    dpg.hide_item("tabs_window")
-    dpg.show_item("loading_indicator")
+def view_all_chans_callback(sender, app_data, user_data):
+    dpg.show_item('spike_panels')
+    dpg.split_frame()
+    dpg.set_axis_limits_auto('spike_xaxis_tag')
+    # dpg.configure_item('spike_panels', modal=True)
 
-    # dpg.split_frame()
-    # with dpg.mutex():
+def spike_chan_callback(sender, app_data, user_data):
+    print('chan:', app_data)
+    cfg_set('spike_chan', int(app_data.split('Ch ')[1])) 
 
-    # LOAD IN DATA
-    rhs_data = read_data(list(app_data['selections'].values())[0])
+def start_drag_callback(sender, app_data, user_data):
+    new_start = dpg.get_value(sender)
+    if cfg_get('spike_start') // 30 != new_start:
+        if new_start < 0:
+            dpg.set_value(sender, 0)
+            return
+        if new_start >= cfg_get('spike_end') // 30:
+            dpg.set_value(sender, cfg_get('spike_end') // 30 - 1)
+            return
+        cfg_set('spike_start', int(new_start * 30))
+    
+        prepare_spike_panels()
+        plot_spikes()
 
-    data_set('raw_data', rhs_data['amplifier_data'])
-    data_set(
-        'analog_data', 
-        rhs_data['board_adc_data'] if 'board_adc_data' in rhs_data else None
+def end_drag_callback(sender, app_data, user_data):
+    new_end = dpg.get_value(sender)
+    if cfg_get('spike_end') // 30 != new_end:
+        if new_end > data_get('n_samples') // 30:
+            dpg.set_value(sender, data_get('n_samples') // 30)
+            return
+        if new_end <= cfg_get('spike_start') // 30:
+            dpg.set_value(sender, cfg_get('spike_start') // 30 + 1)
+            return
+        cfg_set('spike_end', int(new_end * 30))
+    
+        prepare_spike_panels()
+        plot_spikes()
+
+def thresh_mult_callback(sender, app_data, user_data):
+    cfg_set('threshold_mult', app_data)
+    
+    # replot spikes, and panels
+
+def update_filt_order(sender, app_data, user_data):
+    cfg_set('filter_order', app_data)
+    create_filters()
+
+    # filter the data
+    data_set('filtered_data', filter_data(
+        data_get('re-referenced_data'), 
+        data_get('filter'), 
+        notch_sos=data_get('notch_sos') if cfg_get('notch_filter') else None
+    ))
+    # plot the data
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
     )
-    channel_info = rhs_data['amplifier_channels']
-    data_set('impedances', [
-        chan['electrode_impedance_magnitude'] for chan in channel_info
-    ])
-    for chan in range(cfg_get('max_amplif_channels')):
-        if data_get('impedances')[chan] > cfg_get('impedance_threshold') * 1000:
-            data_get('chan_info')[chan] = {'plot':False, 'incl':False}
-        else:
-            data_get('chan_info')[chan] = {'plot':True, 'incl':True}
-    data_set('n_samples', data_get('raw_data').shape[1])
 
-    # CAR the data (included channels only)
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
+    pre_fit_y_axes()
+
+    prepare_psd()
+    chans_avail = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['incl']:
+            chans_avail.append(f'Ch {chan:02d}')
+
+    dpg.configure_item(
+        'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+    )
+    prepare_spike_panels()
+    dpg.split_frame()
+    with dpg.mutex():
+        # auto fit the y limits
+        post_fit_y_axes()
+        # align the channel labels
+        align_channel_labels()
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        dpg.fit_axis_data('psd_xaxis_tag')
+
+    
+def update_filt_type(sender, app_data, user_data):
+    cfg_set('filter_type', app_data)
+    create_filters()
+
+    # filter the data
+    data_set('filtered_data', filter_data(
+        data_get('re-referenced_data'), 
+        data_get('filter'), 
+        notch_sos=data_get('notch_sos') if cfg_get('notch_filter') else None
+    ))
+    # plot the data
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
+    )
+
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
+    pre_fit_y_axes()
+    prepare_psd()
+    chans_avail = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['incl']:
+            chans_avail.append(f'Ch {chan:02d}')
+
+    dpg.configure_item(
+        'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+    )
+    prepare_spike_panels()
+
+    dpg.split_frame()
+    with dpg.mutex():
+        # auto fit the y limits
+        post_fit_y_axes()
+        # align the channel labels
+        align_channel_labels()
+
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        dpg.fit_axis_data('psd_xaxis_tag')
+
+def update_band_type(sender, app_data, user_data):
+    print('test', app_data)
+    cfg_set('band_type', app_data)
+    create_filters()
+
+    # filter the data
+    data_set('filtered_data', filter_data(
+        data_get('re-referenced_data'), 
+        data_get('filter'), 
+        notch_sos=data_get('notch_sos') if cfg_get('notch_filter') else None
+    ))
+    # plot the data
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
+    )
+
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
+    pre_fit_y_axes()
+
+    prepare_psd()
+    chans_avail = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['incl']:
+            chans_avail.append(f'Ch {chan:02d}')
+
+    dpg.configure_item(
+        'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+    )
+    prepare_spike_panels()
+
+    dpg.split_frame()
+    with dpg.mutex():
+        # auto fit the y limits
+        post_fit_y_axes()
+        # align the channel labels
+        align_channel_labels()
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        dpg.fit_axis_data('psd_xaxis_tag')
+
+
+def update_low_filter(sender, app_data, user_data):
+    print('test', app_data)
+    cfg_set('filter_range', (app_data, cfg_get('filter_range')[1]))
+    create_filters()
+
+    # filter the data
+    data_set('filtered_data', filter_data(
+        data_get('re-referenced_data'), 
+        data_get('filter'), 
+        notch_sos=data_get('notch_sos') if cfg_get('notch_filter') else None
+    ))
+    # plot the data
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
+    )
+
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
+    pre_fit_y_axes()
+    prepare_psd()
+    chans_avail = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['incl']:
+            chans_avail.append(f'Ch {chan:02d}')
+
+    dpg.configure_item(
+        'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+    )
+    prepare_spike_panels()
+
+    dpg.split_frame()
+    with dpg.mutex():
+        # auto fit the y limits
+        post_fit_y_axes()
+        # align the channel labels
+        align_channel_labels()
+
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        dpg.fit_axis_data('psd_xaxis_tag')
+
+
+def update_high_filter(sender, app_data, user_data):
+    print('test', app_data)
+    cfg_set('filter_range', (cfg_get('filter_range')[0], app_data))
+    create_filters()
+
+    # filter the data
+    data_set('filtered_data', filter_data(
+        data_get('re-referenced_data'), 
+        data_get('filter'), 
+        notch_sos=data_get('notch_sos') if cfg_get('notch_filter') else None
+    ))
+    # plot the data
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
+    )
+
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
+    pre_fit_y_axes()
+    prepare_psd()
+    chans_avail = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['incl']:
+            chans_avail.append(f'Ch {chan:02d}')
+
+    dpg.configure_item(
+        'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+    )
+    prepare_spike_panels()
+
+    dpg.split_frame()
+    with dpg.mutex():
+        # auto fit the y limits
+        post_fit_y_axes()
+        # align the channel labels
+        align_channel_labels()
+
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        dpg.fit_axis_data('psd_xaxis_tag')
+
+
+def update_notch(sender, app_data, user_data):
+    print('test', app_data)
+    if app_data == 'None':
+        cfg_set('notch_filter', False)
+    else:
+        cfg_set('notch_filter', True)
+
+        # filter the data
+    data_set('filtered_data', filter_data(
+        data_get('re-referenced_data'), 
+        data_get('filter'), 
+        notch_sos=data_get('notch_sos') if app_data else None
+    ))
+    # plot the data
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
+    )
+
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
+    pre_fit_y_axes()
+    prepare_psd()
+    chans_avail = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['incl']:
+            chans_avail.append(f'Ch {chan:02d}')
+
+    dpg.configure_item(
+        'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+    )
+    prepare_spike_panels()
+
+    dpg.split_frame()
+    with dpg.mutex():
+        # auto fit the y limits
+        post_fit_y_axes()
+        # align the channel labels
+        align_channel_labels()
+
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        dpg.fit_axis_data('psd_xaxis_tag')
+
+
+def include_bt_callback(sender, app_data, user_data):
+    chan = int(sender.split('_')[1])
+    with dpg.mutex():
+        if app_data:
+            dpg.configure_item(f'plot_{chan}', enabled=True)
+            set_ch_info(chan, 'plot', False)
+            set_ch_info(chan, 'incl', True)
+        else:
+            dpg.set_value(f'plot_{chan}', value=False)
+            dpg.configure_item(f'plot_{chan}', enabled=False)
+            set_ch_info(chan, 'plot', False)
+            set_ch_info(chan, 'incl', False)
+    
+        # car (could be new included) 
+        chans_to_car = [
+            chan for chan in range(cfg_get('max_amplif_channels')) \
+            if data_get('chan_info')[chan]['incl']
+        ]
+        car = np.mean(data_get('raw_data')[chans_to_car], axis=0)
+        data_set('re-referenced_data', data_get('raw_data')[chans_to_car] - car)
+
+        # filter the data
+        data_set('filtered_data', filter_data(
+            data_get('re-referenced_data'), 
+            data_get('filter'), 
+            notch_sos=data_get('notch_sos') if cfg_get('notch_filter') else None
+        ))
+        # plot the data
+        buffer_handler(
+            dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+            first_plot=True
+        )
+
+        # prepare the plots (hide invisible channels, set axis limits, set colors)
+        prepare_plots()
+        pre_fit_y_axes()
+        prepare_psd()
+        chans_avail = []
+        for chan in range(cfg_get('max_amplif_channels')):
+            if data_get('chan_info')[chan]['incl']:
+                chans_avail.append(f'Ch {chan:02d}')
+
+        dpg.configure_item(
+            'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+        )
+        prepare_spike_panels()
+
+
+    dpg.split_frame()
+    with dpg.mutex():
+        # auto fit the y limits
+        post_fit_y_axes()
+        # align the channel labels
+        align_channel_labels()
+
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        dpg.fit_axis_data('psd_xaxis_tag')
+
+
+def plot_bt_callback(sender, app_data, user_data):
+    chan = int(sender.split('_')[1])
+    set_ch_info(chan, 'plot', app_data)
+
+    # plot the data
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
+    )
+
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
+    pre_fit_y_axes()
+
+    dpg.split_frame()
+    with dpg.mutex():
+        # auto fit the y limits
+        post_fit_y_axes()
+        # align the channel labels
+        align_channel_labels()
+
+def imp_thresh_callback(sender, app_data, user_data):
+    print('imp_thresh_callback')
+    print(f'where segfault01')
+    cfg_set('impedance_threshold', app_data)
+    print(f'where segfault02')
+    threshold_impedances()
+    print(f'where segfault03')
+    update_impedance_table()
+    print(f'where segfault04')
+
+    # car (could be new included) 
     chans_to_car = [
         chan for chan in range(cfg_get('max_amplif_channels')) \
         if data_get('chan_info')[chan]['incl']
     ]
+    print(f'where segfault05')
     car = np.mean(data_get('raw_data')[chans_to_car], axis=0)
-    data_set('car_data', data_get('raw_data')[chans_to_car] - car)
+    print(f'where segfault06')
+    data_set('re-referenced_data', data_get('raw_data')[chans_to_car] - car)
+    print(f'where segfault07')
 
     # filter the data
     data_set('filtered_data', filter_data(
-        data_get('car_data'), 
+        data_get('re-referenced_data'), 
         data_get('filter'), 
         notch_sos=data_get('notch_sos') if cfg_get('notch_filter') else None
     ))
-
-    # create buffered data
-    vis_range = cfg_get('visible_range')[1] - cfg_get('visible_range')[0]
-    buffer = vis_range * cfg_get('buffer_mult')
-    plotted_range = (
-        int(max(cfg_get('visible_range')[0] - buffer, 0)), 
-        int(min(cfg_get('visible_range')[1] + buffer, data_get('n_samples')))
+    print(f'where segfault08')
+    # plot the data
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
     )
-
-    # add raw data to the plot
-    for chan in range(cfg_get('max_amplif_channels')):
-        dpg.add_line_series(
-            tag=f'raw_data_{chan}',
-            x=list(range(*plotted_range)),
-            y=data_get('raw_data')[chan, plotted_range[0]:plotted_range[1]],
-            parent=f'yaxis_tag{chan}',
-            show=False,
-        )
-    
-    # add car data to the plot
-    for idx, chan in enumerate(chans_to_car):
-        dpg.add_line_series(
-            tag=f're-referenced_data_{chan}',
-            x=list(range(*plotted_range)),
-            y=data_get('car_data')[idx, plotted_range[0]:plotted_range[1]],
-            parent=f'yaxis_tag{chan}',
-            show=False,
-        )
-
-    # # add filtered data to the plot
-    for idx, chan in enumerate(chans_to_car):
-        dpg.add_line_series(
-            tag=f'filtered_data_{chan}',
-            x=list(range(*plotted_range)),
-            y=list(data_get('filtered_data')[idx, plotted_range[0]:plotted_range[1]]),
-            parent=f'yaxis_tag{chan}',
-            show=False,
-        )
-    # add analog data to the plot
-    if data_get('analog_data') is not None:
-        for chan in range(cfg_get('max_analog_channels')):
-            dpg.add_line_series(
-                tag=f'analog_data_{chan}',
-                x=list(range(*plotted_range)),
-                y=list(data_get('analog_data')[chan, plotted_range[0]:plotted_range[1]]),
-                parent=f'a_yaxis_tag{chan}',
-                show=True,
-            )
+    print(f'where segfault09')
 
     # prepare the plots (hide invisible channels, set axis limits, set colors)
     prepare_plots()
+    print(f'where segfault10')
+    pre_fit_y_axes()
+    print(f'where segfault11')
+    prepare_psd()
+    chans_avail = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['incl']:
+            chans_avail.append(f'Ch {chan:02d}')
+
+    dpg.configure_item(
+        'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+    )
+    prepare_spike_panels()
+
+    dpg.split_frame()
+    print(f'where segfault12=')
+    with dpg.mutex():
+        print(f'where segfault13')
+        # auto fit the y limits
+        post_fit_y_axes()
+        print(f'where segfault14')
+        # align the channel labels
+        align_channel_labels()
+        print(f'where segfault15')
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        dpg.fit_axis_data('psd_xaxis_tag')
+
+        print(f'where segfault16')
+
+def file_dialog_cb(sender, app_data, user_data):
+    print('file_dialog_cb')
+    dpg.hide_item("plots_window")
+    dpg.hide_item("tabs_window")
+    dpg.show_item("loading_indicator")
+    print(f'where segfault01')
+    new_range = (0, 20000)
+    cfg_set('visible_range', new_range) # 30kHz samples (0.66s)
+    print(f'where segfault02')
+    # dpg.split_frame()
+    # with dpg.mutex():
+    print(f'where segfault03')
+    # load in the data from file
+    rhs_data = read_data(list(app_data['selections'].values())[0])
+    print(f'where segfault04')
+    data_set('n_samples', rhs_data['amplifier_data'].shape[1])
+    print(f'where segfault05')
+    # extract the 30kHz amplifier data
+    data_set('raw_data', rhs_data['amplifier_data'])
+    print(f'where segfault06')
+    # extract the 30kHz analog data
+    data_set(
+        'analog_data', 
+        rhs_data['board_adc_data'] if 'board_adc_data' in rhs_data else None
+    )
+    print(f'where segfault07')
+    # extract the impedances
+    channel_info = rhs_data['amplifier_channels']
+    print(f'where segfault08')
+    data_set('impedances', [
+        chan['electrode_impedance_magnitude'] for chan in channel_info
+    ])
+    print(f'where segfault09')
+    # dont plot or include channels over impedance threshold
+    threshold_impedances()
+    print(f'where segfault10')
+    # common avg reference the data (included channels only)
+    chans_to_car = [
+        chan for chan in range(cfg_get('max_amplif_channels')) \
+        if data_get('chan_info')[chan]['incl']
+    ]
+    print(f'where segfault11')
+    car = np.mean(data_get('raw_data')[chans_to_car], axis=0)
+    print(f'where segfault12')
+    data_set('re-referenced_data', data_get('raw_data')[chans_to_car] - car)
+    print(f'where segfault13')
+
+    # filter the data
+    data_set('filtered_data', filter_data(
+        data_get('re-referenced_data'), 
+        data_get('filter'), 
+        notch_sos=data_get('notch_sos') if cfg_get('notch_filter') else None
+    ))
+    print(f'where segfault14')
+
+    # set the spike range to the range of the data
+    cfg_set('spike_start', 0)
+    print(f'where segfault14.25')
+    cfg_set('spike_end', data_get('n_samples'))
+    dpg.set_value('end_drag', data_get('n_samples') // 30)
+    dpg.set_value('end_drag_panel', data_get('n_samples') // 30)
+
+    print(f'where segfault14.5')
+
+    # plot
+    buffer_handler(new_range, first_plot=True)
+
+    print(f'where segfault15')
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
+    print(f'where segfault16')
+
+    # prepare the impedance heatmap on the channels tab
+    prepare_impedance_heatmap()
+    print(f'where segfault17')
+
+    # prepare the impedance table on the channels tab
+    update_impedance_table()
+    print(f'where segfault18')
+
+    # prepare the PSD on the filtering tab
+    prepare_psd()
+    print(f'where segfault19')
+
+    get_crossings()
+    print(f'where segfault19.25')
+
+    # prepare the spike panels on the spike tab
+    chans_avail = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['incl']:
+            chans_avail.append(f'Ch {chan:02d}')
+
+    dpg.configure_item(
+        'spk_sco_ch', items=chans_avail, default_value=chans_avail[0]
+    )
+    prepare_spike_panels()
+    print(f'where segfault19.5')
+    plot_spikes()
+    print(f'where segfault19.75')
+
+    if cfg_get('show_spikes'):
+        height = 0
+        row_ratios = []
+        for chan in range(cfg_get('max_amplif_channels')):
+            if data_get('chan_info')[chan]['plot']:
+                dpg.configure_item(f'spikes_{chan}', show=cfg_get('show_spikes'))
+                height += cfg_get('amplif_plot_heights')
+                row_ratios.append(1)
+                if cfg_get('show_spikes'): 
+                    height += 0.1
+                    row_ratios.append(0.1)
+                else:
+                    row_ratios.append(0)
+            else:
+                row_ratios.append(0)
+                row_ratios.append(0)
+
+        dpg.configure_item('amplif_plots', height=height, row_ratios=row_ratios)
+
+    
+    print(f'where segfault19.9')
+    dpg.split_frame()
+    print(f'where segfault19.99')
+    align_channel_labels()
+    print(f'where segfault20')
+
+    # prepare the media/time controls
+    prepare_time_controls(new_range)
+    print(f'where segfault21')
+    dpg.set_axis_limits(
+        'xaxis_label_tag', *[int(i / 30) for i in new_range]
+    )
+    border = int(data_get('n_samples') / 30 * 0.2)
+    # dpg.set_axis_limits(
+    #     'xaxis_spk_label_tag', -border, data_get('n_samples') // 30 + border
+    # )
+    # dpg.set_axis_ticks(
+    #     'xaxis_spk_label_tag', 
+    #     tuple([(f'{i:,.0f} ms', i) for i in np.linspace(
+    #             0, data_get('n_samples') // 30, 4
+    #     )])
+    # )
+    for label in ['xaxis_spk_label_tag', 'xaxis_spk_label_tag_panel']:
+        dpg.set_axis_limits(
+            label, -border, data_get('n_samples') // 30 + border
+        )
+        dpg.set_axis_ticks(
+            label, 
+            tuple([(f'{i:,.0f} ms', i) for i in np.linspace(
+                    0, data_get('n_samples') // 30, 4
+            )])
+        )
+    print(f'where segfault22')
+
+    pre_fit_y_axes()
+    print(f'where segfault23')
 
     dpg.hide_item("loading_indicator")
     dpg.show_item("plots_window")
     dpg.show_item("tabs_window")
+    print(f'where segfault24')
 
-    # align the channel labels to the plots
     dpg.split_frame()
+    print(f'where segfault24')
     with dpg.mutex():
-        for pre, ran, ph in zip(
-            ['', 'a_'], 
-            [cfg_get('max_amplif_channels'), cfg_get('max_analog_channels')],
-            [cfg_get('amplif_plot_heights'), cfg_get('analog_plot_heights')]
-        ):
-            for chan in range(ran):
-                x_pos, y_pos = dpg.get_item_pos(f'{pre}plot{chan}')
-                extra = 43 if pre == 'a_' else 0
-                dpg.set_item_pos(
-                    f'{pre}ch{chan}', 
-                    [x_pos - 60 - extra, y_pos + ph / 2 - 14]
-                    )
-        # allow dragging / scrolling
-        for chan in range(cfg_get('max_amplif_channels')):
-            dpg.set_axis_limits_auto(f'xaxis_tag{chan}')
-            dpg.set_axis_limits_auto(f'yaxis_tag{chan}')
-            dpg.fit_axis_data(f'yaxis_tag{chan}')
-            dpg.configure_item(f'yaxis_tag{chan}', lock_min=True, lock_max=True)
-
-        for chan in range(cfg_get('max_analog_channels')):
-            dpg.set_axis_limits_auto(f'a_xaxis_tag{chan}')
-            dpg.set_axis_limits_auto(f'a_yaxis_tag{chan}')
-            dpg.fit_axis_data(f'a_yaxis_tag{chan}')
+        print(f'where segfault25')
+        # auto fit the y limits
+        post_fit_y_axes()
+        print(f'where segfault26')
+        # allow dragging and scrolling of the x axis
+        unfreeze_x_axes()
+        # align the channel labels
+        print(f'where segfault27')
+        align_channel_labels()
+        print(f'where segfault28')
+        dpg.set_axis_limits_auto('psd_xaxis_tag')
+        # dpg.fit_axis_data('psd_xaxis_tag')
+        print(f'where segfault29')
     
-    min_scale = 400
-    # min_scale = 800
-    dpg.configure_item('colormap_scale', min_scale=min_scale, max_scale=2000)
-    dpg.add_heat_series(
-        list(np.array(data_get('impedances')) / 1000), 
-        rows=8, cols=4, 
-        scale_min=min_scale, 
-        scale_max=2000,
-        format="",
-        parent='imp_plot_yaxis'
-    )
-
-    start_x = 0.125
-    start_y = 0.94
-    gap_width = 0.25
-    gap_height = 0.125
-    ch_idx = 0
-    for row in range(8):
-        for col in range(4):
-            min_color_val = min_scale
-            max_color_val = 2000
-            color_val = data_get('impedances')[ch_idx] / 1000
-            if color_val < min_color_val:
-                color_val = min_color_val
-            if color_val > max_color_val:
-                color_val = max_color_val
-            color_range = max_color_val - min_color_val
-            color_val = (color_val - min_color_val) / color_range
-            color_int = int(color_val * 255)
-            color = list((np.array(dpg.get_colormap_color(
-                    'jet_colormap',
-                    color_int,
-                )) * 255).astype(int))
-            
-            imp= data["impedances"][ch_idx] / 1000
-            dpg.add_plot_annotation(
-                tag=f'bind_me{ch_idx}',
-                label=f'Ch {ch_idx:02d}\n{" " if imp < 1000 else ""}{imp:,.0f}',
-                color=color,
-                default_value=(start_x + (col * gap_width), 
-                                start_y - (row * gap_height)),
-                parent='needs_cm'
-            )
-            ch_idx += 1
-    dpg.configure_item('time_slider', max_value=data_get('n_samples'))
-
 def skip_reverse(sender, add_data, user_data):
-    print('skip_reverse')
+    if cfg_get('paused'):
+        def_amplif_chan = cfg_get('default_amplif_channel')
+        amplif_range = dpg.get_axis_limits(f'xaxis_tag{def_amplif_chan}')
+        amplif_range = amplif_range[1] - amplif_range[0]
+        new_limits = (0, amplif_range)
+
+        with dpg.mutex():
+            align_axes('skip_reverse', new_limits)
 
 def skip_forward(sender, add_data, user_data):
-    print('skip_forward')
+    if cfg_get('paused'):
+        n_samples = data_get('n_samples')
+        def_amplif_chan = cfg_get('default_amplif_channel')
+        amplif_range = dpg.get_axis_limits(f'xaxis_tag{def_amplif_chan}')
+        amplif_range = amplif_range[1] - amplif_range[0]
+        new_limits = (n_samples - amplif_range, n_samples)
+
+        with dpg.mutex():
+            align_axes('skip_forward', new_limits)
 
 def play(sender, add_data, user_data):
     print('play')
+    print(f'where segfault01')
+    cfg_set('paused', False)
+    print(f'where segfault02')
+    dpg.configure_item(
+        'play_bt', enabled=False, texture_tag='play_disabled_texture'
+    )
+    print(f'where segfault03')
+    dpg.configure_item('pause_bt', enabled=True, texture_tag='pause_texture')
+    print(f'where segfault04')
+
 
 def pause(sender, add_data, user_data):
-    print('pause')
+    cfg_set('paused', True)
+    dpg.configure_item(
+        'pause_bt', enabled=False, texture_tag='pause_disabled_texture'
+    )
+    dpg.configure_item('play_bt', enabled=True, texture_tag='play_texture')
 
-def time_slider_drag(sender, add_data, user_data):
-    print('time_slider_drag')
+def time_slider_drag(sender, app_data, user_data):
+    if cfg_get('paused'):
+        def_amplif_chan = cfg_get('default_amplif_channel')
+        amplif_range = dpg.get_axis_limits(f'xaxis_tag{def_amplif_chan}')
+        new_limits = (app_data, app_data + amplif_range[1] - amplif_range[0])
+
+        with dpg.mutex():
+            align_axes('time_slider', new_limits)
 
 def plot_zoom_callback(sender, app_data, user_data):
-    if dpg.is_item_hovered('amplif_plots_group'):
-        dpg.split_frame()
-        with dpg.mutex():
-            align_axes('amplif_plots_group', dpg.get_axis_limits(f'xaxis_tag0'))
-    elif dpg.is_item_hovered('analog_plots_group'):
-        dpg.split_frame()
-        with dpg.mutex():
-            align_axes('analog_plots_group', dpg.get_axis_limits(f'a_xaxis_tag0'))
+    if cfg_get('paused'):
+        if dpg.is_item_hovered('amplif_plots_group'):
+            unfreeze_x_axes()
+            def_chan = cfg_get('default_amplif_channel')
+            pre_fit_y_axes()
+            dpg.split_frame()
+            with dpg.mutex():
+                align_axes(
+                    'amplif_plots_group', 
+                    dpg.get_axis_limits(f'xaxis_tag{def_chan}')
+                )
+                post_fit_y_axes()
+        elif dpg.is_item_hovered('analog_plots_group'):
+            unfreeze_x_axes()
+            def_chan = cfg_get('default_analog_channel')
+            pre_fit_y_axes()
+            dpg.split_frame()
+            with dpg.mutex():
+                align_axes(
+                    'analog_plots_group', 
+                    dpg.get_axis_limits(f'a_xaxis_tag{def_chan}')
+                )
+                post_fit_y_axes()
 
 def plot_drag_callback(sender, app_data, user_data):
-    if dpg.is_item_hovered('amplif_plots_group'):
-        with dpg.mutex():
-            align_axes('amplif_plots_group', dpg.get_axis_limits(f'xaxis_tag0'))
-    elif dpg.is_item_hovered('analog_plots_group'):
-        with dpg.mutex():
-            align_axes('analog_plots_group', dpg.get_axis_limits(f'a_xaxis_tag0'))
-
-    # if sender in ['amplif_plots_group', 'analog_plots_group']:
-
-    # if dpg.is_item_hovered('amplif_plots_group'):
-    #     # with dpg.mutex():
-    #     for i in range(cfg_get('max_amplif_channels')):
-    #         dpg.configure_item(f'yaxis_tag{i}', lock_min=False, lock_max=False)
-    #         dpg.fit_axis_data(f'yaxis_tag{i}')
-    #         dpg.configure_item(f'yaxis_tag{i}', lock_min=True, lock_max=True)
-    #     x_min, x_max = dpg.get_axis_limits(f'xaxis_tag0')
-
-    #     buffer = (cfg_get('visible_range')[1] - cfg_get('visible_range')[0]) * cfg_get('buffer_mult')
-    #     if x_max > cfg_get('visible_range')[1] + buffer * 0.25:
-    #         cfg_set('visible_range', (x_min, x_max))
-    #         plot_range = (
-    #             int(max(cfg_get('visible_range')[0] - buffer, 0)), 
-    #             int(cfg_get('visible_range')[1] + buffer)
-    #         )
-    #         for i in range(cfg_get('max_amplif_channels')):
-    #             dpg.set_value(
-    #                 f'{cfg["waveform_type"].lower()}_data_{i}',
-    #                 [
-    #                     list(range(*plot_range)),
-    #                     list(data[f'{cfg["waveform_type"].lower()}_data'][i, plot_range[0]:plot_range[1]])
-    #                 ]
-    #             )
-
-def mapping_change_cb(sender, app_data, user_data):
-    prev_chan = sender.split('_')[0][2:]
-    prev_sender_value = read_settings('mapping', sender, prev_chan)
-    for chan in range(cfg_get('max_amplif_channels')):
-        old_parent = f'ch{chan}_mapping'
-        if int(read_settings('mapping', old_parent, chan)) == int(app_data):
-            write_settings('mapping', old_parent, prev_sender_value)
-            dpg.set_value(old_parent, f'{int(prev_sender_value):02d}')
-            break
-    write_settings('mapping', sender, app_data)
-    dpg.set_value(sender, f'{int(app_data):02d}')
+    if cfg_get('paused'):
+        if dpg.is_item_hovered('amplif_plots_group'):
+            pre_fit_y_axes()
+            unfreeze_x_axes()
+            def_chan = cfg_get('default_amplif_channel')
+            with dpg.mutex():
+                align_axes(
+                    'amplif_plots_group', 
+                    dpg.get_axis_limits(f'xaxis_tag{def_chan}')
+                )
+            post_fit_y_axes()
+        elif dpg.is_item_hovered('analog_plots_group'):
+            unfreeze_x_axes()
+            def_chan = cfg_get('default_analog_channel')
+            with dpg.mutex():
+                align_axes(
+                    'analog_plots_group', 
+                    dpg.get_axis_limits(f'a_xaxis_tag{def_chan}')
+                )
+            post_fit_y_axes()
 
 def dir_dialog_cb(sender, app_data, user_data): 
     selected_dir = os.path.dirname(list(app_data['selections'].values())[0])
     write_settings('defaults', 'path', selected_dir)
 
 def plot_type_cb(sender, app_data, user_data):
-    print(sender, app_data, user_data)
+    print(app_data)
+    cfg_set('waveform_type', app_data)
+    # plot
+    buffer_handler(
+        dpg.get_axis_limits(f'xaxis_tag{cfg_get("default_amplif_channel")}'), 
+        first_plot=True
+    )
+
+    # prepare the plots (hide invisible channels, set axis limits, set colors)
+    prepare_plots()
 
 def toggle_spikes_cb(sender, app_data, user_data):
-    dpg.configure_item(
-        'amplif_plots', 
-        height=cfg_get('amplif_plot_heights') * cfg_get('max_amplif_channels') * (1.5 if app_data else 1),
-        row_ratios=[1, 0.5 if app_data else 0] * cfg_get('max_amplif_channels'),
-    )
-    dpg.split_frame()
+    height = 0
+    row_ratios = []
     for chan in range(cfg_get('max_amplif_channels')):
-        o_x_pos, _ = dpg.get_item_pos(f'ch{chan}')
-        _, y_pos = dpg.get_item_pos(f'plot{chan}')
-        dpg.set_item_pos(
-            f'ch{chan}', 
-            [o_x_pos, y_pos + cfg_get('amplif_plot_heights') / 2 - 14]
-        )
+        if data_get('chan_info')[chan]['plot']:
+            dpg.configure_item(f'spikes_{chan}', show=app_data)
+            height += cfg_get('amplif_plot_heights')
+            row_ratios.append(1)
+            if app_data: 
+                height += 0.1
+                row_ratios.append(0.1)
+            else:
+                row_ratios.append(0)
+        else:
+            row_ratios.append(0)
+            row_ratios.append(0)
+
+    dpg.configure_item('amplif_plots', height=height, row_ratios=row_ratios)
+
+    dpg.split_frame()
+    align_channel_labels()
 
 def amplif_height_cb(sender, app_data, user_data):
-    if app_data > int(cfg_get('amplif_plots_height') / cfg_get('max_amplif_channels')):
-        # for chan in range(cfg_get('max_amplif_channels')):
-        #     dpg.set_item_height(f'plot{chan}', app_data)
-        dpg.configure_item('amplif_plots', height=app_data * cfg_get('max_amplif_channels'))
-        dpg.split_frame()
-        for chan in range(cfg_get('max_amplif_channels')):
-            o_x_pos, _ = dpg.get_item_pos(f'ch{chan}')
-            _, y_pos = dpg.get_item_pos(f'plot{chan}')
-            dpg.set_item_pos(
-                f'ch{chan}', 
-                [o_x_pos, y_pos + app_data / 2 - 14]
-            )
+    cfg_set('amplif_plot_heights', app_data)
+    height = 0
+    row_ratios = []
+    for chan in range(cfg_get('max_amplif_channels')):
+        if data_get('chan_info')[chan]['plot']:
+            dpg.configure_item(f'spikes_{chan}', show=cfg_get('show_spikes'))
+            height += app_data
+            row_ratios.append(1)
+            if cfg_get('show_spikes'): 
+                height += 0.1
+                row_ratios.append(0.1)
+            else:
+                row_ratios.append(0)
+        else:
+            row_ratios.append(0)
+            row_ratios.append(0)
+
+    dpg.configure_item('amplif_plots', height=height, row_ratios=row_ratios)
+
 
 def analog_height_cb(sender, app_data, user_data):
     if app_data > int(cfg_get('amplif_plots_height') / cfg_get('max_analog_channels')):
@@ -294,25 +792,31 @@ def analog_height_cb(sender, app_data, user_data):
             _, y_pos = dpg.get_item_pos(f'a_plot{chan}')
             dpg.set_item_pos(f'a_ch{chan}', [o_x_pos, y_pos + app_data / 2 - 14])
 
+
 def query_cb(sender, app_data, user_data):
     locs = cfg_get('locs')
-    i = sender.split('plot')[1]
+    if sender.startswith('a_plot'):
+        i = sender.split('a_plot')[1]
+        prefix = 'a_'
+    else:
+        i = sender.split('plot')[1]
+        prefix = ''
     if app_data != locs[int(i)]:
         dpg.configure_item(
-            f'query_text{i}', 
+            f'{prefix}query_text{i}', 
             show=True,
+            label=f'{int((app_data[1] - app_data[0]) / 30)} ms',
             default_value=(app_data[1], app_data[3]),
         )
         locs[int(i)] = app_data
         cfg_set('locs', locs)
 
-    # dpg.split_frame()
-    # if not dpg.is_plot_queried(sender):
-    #     dpg.configure_item(f'query_text{i}', show=False)
-    # dpg.configure_item
 
 def remove_query_cb(sender, app_data, user_data):
-    print(sender)
-
-    # for i in range(cfg_get('max_amplif_channels')):
-    #     dpg.configure_item(f'query_text{i}', show=False)
+    tag = sender.split('_clicked_handler')[0]
+    if tag.startswith('a_plot'):
+        tag = tag.split('a_plot')[1]
+        dpg.configure_item(f'a_query_text{tag}', show=False)
+    else:
+        tag = tag.split('plot')[1]
+        dpg.configure_item(f'query_text{tag}', show=False)

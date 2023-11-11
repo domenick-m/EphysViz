@@ -4,8 +4,32 @@ import configparser
 
 
 cfg = {}
-data = {'chan_info':{}}
+data = {'chan_info': {i: {} for i in range(32)}}
 
+def load_defaults():
+    # load default configs from settings.ini
+    global cfg
+    cfg['amplif_plot_heights'] = read_settings(
+        'defaults', 'amplif_plot_heights', 35
+    )
+    cfg['analog_plot_heights'] = read_settings(
+        'defaults', 'analog_plot_heights', 35
+    )
+    cfg['impedance_threshold'] = read_settings(
+        'defaults', 'impedance_threshold', 1000
+    )
+    cfg['path'] = read_settings('defaults', 'path', os.path.expanduser('~'))
+    cfg['filter_type'] = read_settings('defaults', 'filter_type', 'Butterworth')
+    cfg['band_type'] = read_settings('defaults', 'band_type', 'Bandpass')
+    cfg['filter_order'] = read_settings('defaults', 'filter_order', 4)
+    cfg['filter_range'] = read_settings('defaults', 'filter_range', (250, 3000))
+    cfg['notch_filter'] = read_settings('defaults', 'notch_filter', True)
+    cfg['show_spikes'] = read_settings('defaults', 'show_spikes', False)
+    cfg['play_speed'] = read_settings('defaults', 'play_speed', '0.5x')
+    cfg['spike_chan'] = read_settings('defaults', 'spike_chan', 0)
+    cfg['threshold_mult'] = read_settings('defaults', 'threshold_mult', 4.5)
+    cfg['waveform_type'] = read_settings('defaults', 'waveform_type', 'Filtered')
+    
 def cfg_get(key):
     global cfg
     return cfg[key]
@@ -21,6 +45,10 @@ def data_get(key):
 def data_set(key, value):
     global data
     data[key] = value
+
+def set_ch_info(ch, key, value):
+    global data
+    data['chan_info'][ch][key] = value
 
 def get_settings_path(app_name='EphysViz', filename='settings.ini'):
     """Return the path to the settings file for a given app."""
@@ -56,24 +84,3 @@ def read_settings(section, setting, default=None, filename="settings.ini"):
     config.read(settings_path)
     return config.get(section, setting) if config.has_option(section, setting) \
            else default
-
-def load_defaults():
-    # load default configs from settings.ini
-    global cfg
-    cfg['amplif_plot_heights'] = read_settings(
-        'defaults', 'amplif_plot_heights', 25
-    )
-    cfg['analog_plot_heights'] = read_settings(
-        'defaults', 'analog_plot_heights', 60
-    )
-    cfg['impedance_threshold'] = read_settings(
-        'defaults', 'impedance_threshold', 5000
-    )
-    cfg['path'] = read_settings('defaults', 'path', os.path.expanduser('~'))
-    cfg['filter_type'] = read_settings('defaults', 'filter_type', 'Butterworth')
-    cfg['band_type'] = read_settings('defaults', 'band_type', 'Bandpass')
-    cfg['filter_order'] = read_settings('defaults', 'filter_order', 4)
-    cfg['filter_range'] = read_settings('defaults', 'filter_range', (250, 3000))
-    cfg['notch_filter'] = read_settings('defaults', 'notch_filter', True)
-    cfg['show_spikes'] = read_settings('defaults', 'show_spikes', False)
-    cfg['waveform_type'] = read_settings('defaults', 'waveform_type', 'Filtered')
