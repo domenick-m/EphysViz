@@ -17,9 +17,6 @@ cfg_set('sample_rate', 30000) # Hz
 # load default configs from settings.ini
 load_defaults()
 
-# create the filters according to the default configs
-create_filters()
-
 # create a dearpygui context
 dpg.create_context()
 
@@ -58,17 +55,19 @@ cfg_set('viewport_width', viewport_width)
 #                                                        |                     #
 #          ANALOG CHANNELS                               |                     #
 #                                                        |                     #
-#                      X-AXIS LABEL                      |                     #
-#--------------------------------------------------------#---------------------#
+#                       X-AXIS LABEL                     |                     #
+#--------------------------------------------------------#                     #
 #  TIME CONTROL BAR                                      |                     #
 #--------------------------------------------------------#---------------------#
 
 # add plot parameters to the config
 cfg_set('num_ticks', 11)
+cfg_set('y_fit_alpha', 0.95) # axis range * this mult = unseen buffer
 cfg_set('buffer_mult', 0.5) # axis range * this mult = unseen buffer
 cfg_set('menu_bar_height', 26)
 cfg_set('tab_bar_height', 51)
 cfg_set('x_axis_height', 60)
+cfg_set('spike_start', 0)
 cfg_set('imp_plot_height', 350)
 cfg_set('time_controls_height', 70)
 cfg_set('channel_labels_width', 115)
@@ -95,11 +94,21 @@ cfg_set('amplif_plot_heights', max(
     cfg_get('amplif_plots_height') / cfg_get('max_amplif_channels'),
     cfg_get('amplif_plot_heights') 
 ))
+cfg_set('electode_mapping', [
+    [13, 10, 7, 3],
+    [19, 23, 26, 29],
+    [18, 21, 24, 28],
+    [12, 8, 5, 2],
+    [14, 9, 0, 4],
+    [20, 16, 25, 30],
+    [17, 22, 31, 27],
+    [11, 15, 6, 1]
+])
 
 # set the default font
 with dpg.font_registry():
-    default_font = dpg.add_font(resource_path('SF-Mono-Light.otf'), 21)
-    small_font = dpg.add_font(resource_path('SF-Mono-Light.otf'), 16.5)
+    default_font = dpg.add_font(get_resource_path('SF-Mono-Light.otf'), 21)
+    small_font = dpg.add_font(get_resource_path('SF-Mono-Light.otf'), 16.5)
 
 # dpg.bind_font(small_font)
 dpg.bind_font(default_font)
@@ -119,17 +128,6 @@ cfg_set('plot_colors', [
     [188, 189, 34],  # Olive
     [23, 190, 207]   # Cyan
 ])
-cfg_set('electode_mapping', [
-    [13, 10, 7, 3],
-    [19, 23, 26, 29],
-    [18, 21, 24, 28],
-    [12, 8, 5, 2],
-    [14, 9, 0, 4],
-    [20, 16, 25, 30],
-    [17, 22, 31, 27],
-    [11, 15, 6, 1]
-])
-
 
 # Create a custom colormap
 custom_cmap = mcolors.LinearSegmentedColormap.from_list("custom_cmap", [
@@ -139,7 +137,7 @@ custom_cmap = mcolors.LinearSegmentedColormap.from_list("custom_cmap", [
 custom_cmap = plt.get_cmap(custom_cmap, 256)
 custom_colors = custom_cmap(np.linspace(0, 1, 256))
 for idx, color in enumerate(custom_colors):
-    print(idx, color)
+    
     with dpg.theme(tag=f'custom_color_{idx}'):
         with dpg.theme_component(dpg.mvAll):
             dpg.add_theme_color(
@@ -154,13 +152,27 @@ jet_colors = jet_colormap(np.linspace(0, 1, 256))
 # Apply the adjustment with a brightness factor and saturation factor
 brightness_factor = 0.85
 saturation_factor = 0.7
-jet_colors_adjusted = adjust_color_brightness_saturation(
+jet_colors_adjusted = adjust_color(
     jet_colors[:, :3], brightness_factor, saturation_factor
 )
 with dpg.colormap_registry():
     dpg.add_colormap(jet_colors_adjusted, False, tag='jet_colormap')
 
-# TODO: create a default theme with the style editor!
+
+
+
+with dpg.theme() as base_theme:
+    with dpg.theme_component(dpg.mvAll):
+        dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 0, 0)
+
+with dpg.theme() as tabs_window_theme:
+    with dpg.theme_component(dpg.mvAll):
+        dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 5, 5)
+
+dpg.bind_theme(base_theme)
+
+
+
 
 with dpg.theme(tag=f"disabled_chan"):
     with dpg.theme_component(dpg.mvAll):
@@ -230,7 +242,7 @@ icon_names = [
 ]
 
 for name in icon_names:
-    _, _, _, im_data = dpg.load_image(resource_path(f"{name}.png"))
+    _, _, _, im_data = dpg.load_image(get_resource_path(f"{name}.png"))
     with dpg.texture_registry(show=False):
         dpg.add_static_texture(
             height=20, width=20, 
@@ -251,7 +263,7 @@ with dpg.viewport_menu_bar(tag='menu_bar', show=False):
         )
         dpg.add_menu_item(
             label="Save Settings as Default", 
-            callback=lambda: print("Save Clicked")
+            callback=save_settings
         )
         dpg.add_menu_item(
             label="Set Default Directory", 
@@ -315,12 +327,12 @@ with dpg.window(
         8, 
         4, 
         label="Spike Panel", 
-        width=cfg_get('subplots_width')*1.25, 
+        width=cfg_get('viewport_width')-50,
         height=cfg_get('subplots_height'), 
         no_title=True, 
         no_menus=True, 
         no_resize=True,
-        link_columns=True,
+        link_all_x=True
     ):
         for row in range(8):
             for col in range(4):
@@ -346,53 +358,70 @@ with dpg.window(
                         no_tick_marks=True, 
                         no_tick_labels=True
                     )
-    with dpg.group(horizontal=True):
-        dpg.add_spacer(width=cfg_get('subplots_width')*1.25/2-100)
-        dpg.add_text("Time relative to crossing (ms)")
-    with dpg.group(horizontal=True):
-        dpg.add_spacer(width=cfg_get('subplots_width')*1.25/2-400)
-        dpg.add_text("Plot Crossings within Range:")
-    with dpg.group(horizontal=True):
-        dpg.add_spacer(width=cfg_get('subplots_width')*1.25/2-350)
-        with dpg.plot(
-            height=75, width=cfg_get('subplots_width')*0.5, tag='spike_range_plot_panel', no_mouse_pos=True
-        ):
-            dpg.add_plot_axis(
-                dpg.mvXAxis, 
-                tag='xaxis_spk_label_tag_panel',
-                no_gridlines=True,
-                lock_max=True,
-                lock_min=True,
-            )
-            dpg.add_plot_axis(
-                dpg.mvYAxis, 
-                tag='yaxis_spk_label_tag_panel',
-                no_gridlines=True,
-                lock_max=True,
-                lock_min=True,
-                no_tick_labels=True,
-                no_tick_marks=True,
-            )
-            dpg.add_drag_line(
-                label="Start", 
-                color=[44, 160, 44, 255], 
-                show_label=True,
-                thickness=3,
-                vertical=True, 
-                default_value=0, 
-                tag='start_drag_panel',
-                callback=start_drag_callback
-            )
-            dpg.add_drag_line(
-                label="End", 
-                color=[214, 39, 40, 255], 
-                thickness=3,
-                vertical=True, 
-                default_value=600, 
-                tag='end_drag_panel',
-                callback=end_drag_callback
-            )
+
+    with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.43)
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.23)
+        with dpg.table_row():
+            dpg.add_text('')
+            dpg.add_text("Time relative to crossing (ms)")
+    dpg.add_spacer(height=5)
+    with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
+        with dpg.table_row():
+            dpg.add_text('')
+            dpg.add_text("Plot Crossings within Range:")
+    with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
+        dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
+        with dpg.table_row():
+            dpg.add_text('')
+            with dpg.plot(
+                height=75, width=-1, tag='spike_range_plot_panel', no_mouse_pos=True
+            ):
+                dpg.add_plot_axis(
+                    dpg.mvXAxis, 
+                    tag='xaxis_spk_label_tag_panel',
+                    no_gridlines=True,
+                    lock_max=True,
+                    lock_min=True,
+                )
+                dpg.add_plot_axis(
+                    dpg.mvYAxis, 
+                    tag='yaxis_spk_label_tag_panel',
+                    no_gridlines=True,
+                    lock_max=True,
+                    lock_min=True,
+                    no_tick_labels=True,
+                    no_tick_marks=True,
+                )
+                dpg.add_drag_line(
+                    label="Start", 
+                    color=[44, 160, 44, 255], 
+                    show_label=True,
+                    thickness=3,
+                    vertical=True, 
+                    default_value=0, 
+                    tag='start_drag_panel',
+                    callback=start_drag_callback
+                )
+                dpg.add_drag_line(
+                    label="End", 
+                    color=[214, 39, 40, 255], 
+                    thickness=3,
+                    vertical=True, 
+                    default_value=600, 
+                    tag='end_drag_panel',
+                    callback=end_drag_callback
+                )
         dpg.bind_item_font('spike_range_plot_panel', small_font)
+    # with dpg.group(horizontal=True):
+    #     dpg.add_spacer(width=cfg_get('subplots_width')*1.25/2-350)
+        
 dpg.bind_item_font('spike_panels', small_font)
 
 
@@ -461,6 +490,7 @@ with dpg.window(
             with dpg.group(horizontal=True):   
                 dpg.add_text('Analog Plot Heights:')
                 dpg.add_input_int(
+                    tag='analog_heights_input',
                     callback=analog_height_cb, 
                     default_value=cfg_get('analog_plot_heights'), 
                     width=100
@@ -530,6 +560,8 @@ with dpg.window(
                                 no_gridlines=True,
                                 no_tick_marks=True, 
                                 no_tick_labels=True,  
+                                lock_min=True,
+                                lock_max=True,
                             ):
                                 # add dummy raw data
                                 dpg.add_line_series(
@@ -648,6 +680,8 @@ with dpg.window(
                                 no_gridlines=True,  
                                 no_tick_marks=True, 
                                 no_tick_labels=True,  
+                                lock_min=True,
+                                lock_max=True,
                             ):
                                 # add dummy analog data
                                 dpg.add_line_series(
@@ -756,7 +790,7 @@ with dpg.window(
             dpg.add_spacer(height=10)
 
             with dpg.group(horizontal=True):
-                with dpg.child(
+                with dpg.child_window(
                     height=(
                         cfg_get('viewport_height') - \
                         cfg_get('menu_bar_height') - \
@@ -914,7 +948,7 @@ with dpg.window(
                 )
                 with dpg.plot_axis(
                     dpg.mvYAxis, 
-                    label="Power", 
+                    label="Mean PSD (uV^2/Hz)", 
                     tag='psd_yaxis_tag', 
                     log_scale=True,
                     lock_min=True,
@@ -1038,6 +1072,8 @@ with dpg.window(
 dpg.bind_colormap('imp_heatmap', 'jet_colormap')
 dpg.bind_item_font('imp_heatmap', small_font)
 dpg.bind_item_font('colormap_scale', small_font)
+dpg.bind_item_theme('tabs_window', tabs_window_theme)
+
 
 with dpg.handler_registry():
     dpg.add_mouse_drag_handler(
@@ -1074,28 +1110,20 @@ while dpg.is_dearpygui_running():
     if cfg_get('paused'):
         last_update_time = timeit.default_timer()
     else:
-        print(f'no_pause - where segfault01')
         with dpg.mutex():
-            print(f'no_pause - where segfault02')
             current_time = timeit.default_timer()
-            print(f'no_pause - where segfault03')
             new_limits = get_play_limits(last_update_time, current_time)
-            print(f'no_pause - where segfault04')
             last_update_time = current_time
-            print(f'no_pause - where segfault05')
-            plot_data_play(new_limits)
-            print(f'no_pause - where segfault06')
-            pre_fit_y_axes()
-            print(f'no_pause - where segfault07')
-
-
+            plot_data(new_limits, play=True)
+            waveform_type = cfg_get('waveform_type').lower()
+            plotted_chans = data_get(f'plotted_chans_{waveform_type}')
+            for idx, chan in plotted_chans:
+                dpg.set_axis_limits(f'xaxis_tag{chan}', *new_limits)
+                cfg_set('visible_range', new_limits)
+            fit_y_axes()
+            
     dpg.render_dearpygui_frame()
 
-    if not cfg_get('paused'):
-        print(f'no_pause - where segfault08')
-        with dpg.mutex():
-            print(f'no_pause - where segfault09')
-            post_fit_y_axes()
-            print(f'no_pause - where segfault10')
+
 
 dpg.destroy_context()

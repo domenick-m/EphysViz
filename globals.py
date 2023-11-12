@@ -50,6 +50,9 @@ def set_ch_info(ch, key, value):
     global data
     data['chan_info'][ch][key] = value
 
+def save_settings():
+    pass
+
 def get_settings_path(app_name='EphysViz', filename='settings.ini'):
     """Return the path to the settings file for a given app."""
     if sys.platform.startswith('win'): # windows
