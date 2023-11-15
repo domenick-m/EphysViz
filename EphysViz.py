@@ -24,8 +24,8 @@ dpg.create_context()
 screen_height, screen_width = get_screen_size()
 dpg.create_viewport(
     title='EphysViz',
-    x_pos=0, y_pos=0, 
-    height=screen_height,  
+    x_pos=0, y_pos=0,
+    height=screen_height,
     width=screen_width,
     vsync=True
 )
@@ -100,12 +100,12 @@ cfg_set('analog_plots_height', cfg_get('subplots_height') * 0.1)
 cfg_set('subplots_width', cfg_get('plots_window_width') - cfg_get('channel_labels_width'))
 cfg_set('amplif_plot_heights', max(
     cfg_get('amplif_plots_height') / cfg_get('max_amplif_channels'),
-    cfg_get('amplif_plot_heights') 
+    cfg_get('amplif_plot_heights')
 ))
 cfg_set('tabs_window_state', (
     cfg_get('viewport_height') - cfg_get('menu_bar_height'),
-    cfg_get('tabs_window_width'), 
-    [cfg_get('plots_window_width'), cfg_get('menu_bar_height')], 
+    cfg_get('tabs_window_width'),
+    [cfg_get('plots_window_width'), cfg_get('menu_bar_height')],
 ))
 cfg_set('analog_window_state', (
     cfg_get('analog_plots_height'),
@@ -156,15 +156,15 @@ custom_cmap = mcolors.LinearSegmentedColormap.from_list("custom_cmap", [
 custom_cmap = plt.get_cmap(custom_cmap, 256)
 custom_colors = custom_cmap(np.linspace(0, 1, 256))
 for idx, color in enumerate(custom_colors):
-    
+
     with dpg.theme(tag=f'custom_color_{idx}'):
         with dpg.theme_component(dpg.mvAll):
             dpg.add_theme_color(
-                dpg.mvPlotCol_Line, 
+                dpg.mvPlotCol_Line,
                 [int(color[0]*255), int(color[1]*255), int(color[2]*255)],
                 category=dpg.mvThemeCat_Plots
             )
-        
+
 
 jet_colormap = plt.get_cmap('jet', 256)
 jet_colors = jet_colormap(np.linspace(0, 1, 256))
@@ -211,7 +211,7 @@ with dpg.theme() as amplif_plots_theme:
 with dpg.theme() as analog_plots_theme:
     with dpg.theme_component(dpg.mvAll):
         dpg.add_theme_color(dpg.mvThemeCol_FrameBg, [37, 37, 38], category=dpg.mvThemeCat_Core)
-        
+
 with dpg.theme() as x_axis_theme:
     with dpg.theme_component(dpg.mvAll):
         dpg.add_theme_color(dpg.mvThemeCol_FrameBg, [37, 37, 38])
@@ -234,7 +234,7 @@ with dpg.theme() as tabs_window_theme:
         dpg.add_theme_style(dpg.mvStyleVar_CellPadding, 0, 2, category=dpg.mvThemeCat_Core)
         dpg.add_theme_style(dpg.mvStyleVar_FramePadding, 12, 3, category=dpg.mvThemeCat_Core)
         dpg.add_theme_style(dpg.mvStyleVar_ChildRounding, 10, category=dpg.mvThemeCat_Core)
-        
+
 with dpg.theme() as channels_tab_theme:
     with dpg.theme_component(dpg.mvAll):
         dpg.add_theme_color(dpg.mvThemeCol_Text, [255, 255, 255])
@@ -300,7 +300,7 @@ for idx, color in enumerate(cfg_get('plot_colors')):
         with dpg.theme_component(dpg.mvAll):
             dpg.add_theme_color(dpg.mvThemeCol_Text, color)
             dpg.add_theme_color(dpg.mvPlotCol_Line, color, category=dpg.mvThemeCat_Plots)
-        
+
         with dpg.theme_component(dpg.mvScatterSeries):
             dpg.add_theme_style(dpg.mvPlotStyleVar_Marker, dpg.mvPlotMarker_Up, category=dpg.mvThemeCat_Plots)
             dpg.add_theme_style(dpg.mvPlotStyleVar_MarkerSize, 4, category=dpg.mvThemeCat_Plots)
@@ -308,7 +308,7 @@ for idx, color in enumerate(cfg_get('plot_colors')):
 with dpg.theme(tag='white_bar'):
         with dpg.theme_component(dpg.mvAll):
             dpg.add_theme_color(dpg.mvPlotCol_Line, [255, 255, 255], category=dpg.mvThemeCat_Plots)
-            
+
 with dpg.theme(tag='test'):
     with dpg.theme_component(dpg.mvAll):
         dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 1, 1)
@@ -316,25 +316,25 @@ with dpg.theme(tag='test'):
         dpg.add_theme_style(dpg.mvPlotStyleVar_PlotBorderSize, 0, category=dpg.mvThemeCat_Plots)
 
 for tag in ['max_t', 'min_t']:
-    with dpg.theme(tag=tag):    
+    with dpg.theme(tag=tag):
         with dpg.theme_component(dpg.mvLineSeries):
             dpg.add_theme_color(dpg.mvPlotCol_Line, [37, 37, 38], category=dpg.mvThemeCat_Plots)
 
 # ------ TEXTURE LOADING ------ #
 
 icon_names = [
-    'play', 'play_disabled', 
+    'play', 'play_disabled',
     'pause', 'pause_disabled',
-    'skip_left', 'skip_left_disabled', 
-    'skip_right', 'skip_right_disabled', 
+    'skip_left', 'skip_left_disabled',
+    'skip_right', 'skip_right_disabled',
 ]
 
 for name in icon_names:
     _, _, _, im_data = dpg.load_image(get_resource_path(f"{name}.png"))
     with dpg.texture_registry(show=False):
         dpg.add_static_texture(
-            height=20, width=20, 
-            default_value=im_data, 
+            height=20, width=20,
+            default_value=im_data,
             tag=f"{name}_texture"
         )
 
@@ -344,15 +344,15 @@ for name in icon_names:
 with dpg.viewport_menu_bar(tag='menu_bar', show=False):
     with dpg.menu(label="File"):
         dpg.add_menu_item(
-            label="Open...", 
+            label="Open...",
             callback=lambda: dpg.show_item("file_dialog")
         )
         dpg.add_menu_item(
-            label="Save Settings as Default", 
+            label="Save Settings as Default",
             callback=save_settings
         )
         dpg.add_menu_item(
-            label="Set Default Directory", 
+            label="Set Default Directory",
             callback=lambda: dpg.show_item("dir_dialog")
         )
 
@@ -374,13 +374,13 @@ dpg.add_file_dialog(
 #   -- FILE SELECTION
 # create a .RHS file selection dialog (visisble by default)
 with dpg.file_dialog(
-    tag='file_dialog', 
-    label='Select file to open...', 
+    tag='file_dialog',
+    label='Select file to open...',
     show=True, modal=True,
-    directory_selector=False, 
-    height=cfg_get('viewport_height') * 0.65, 
+    directory_selector=False,
+    height=cfg_get('viewport_height') * 0.65,
     width=cfg_get('viewport_width') * 0.5,
-    callback=file_dialog_cb, 
+    callback=file_dialog_cb,
     default_path=read_settings('defaults', 'path', os.path.expanduser('~'))
 ):
     dpg.add_file_extension('.rhs', color=(0, 255, 0, 255))
@@ -404,20 +404,20 @@ with dpg.window(tag='loading_indicator', pos=pos, show=False, no_collapse=True):
 
 #   -- SPIKE PANEL
 with dpg.window(
-    tag='spike_panels', 
-    modal=True, 
+    tag='spike_panels',
+    modal=True,
     show=False,
     no_scrollbar=True
 ):
     with dpg.group(tag='spike_panels_plot',):
         with dpg.subplots(
-            8, 
-            4, 
-            label="Spike Panel", 
+            8,
+            4,
+            label="Spike Panel",
             width=cfg_get('viewport_width')-50,
-            height=cfg_get('subplots_height')-60, 
-            no_title=True, 
-            no_menus=True, 
+            height=cfg_get('subplots_height')-60,
+            no_title=True,
+            no_menus=True,
             no_resize=True,
             link_all_x=True
         ):
@@ -426,24 +426,24 @@ with dpg.window(
                     plot_size = 50
                     with dpg.plot(
                         tag=f'spike_panel_row{row}_col{col}',
-                        height=plot_size, 
+                        height=plot_size,
                         width=plot_size*1.25,
                     ):
                         dpg.add_plot_axis(
-                            dpg.mvXAxis, 
-                            # no_gridlines=True, 
-                            show=True, 
+                            dpg.mvXAxis,
+                            # no_gridlines=True,
+                            show=True,
                             tag=f'panel_xaxis_row{row}_col{col}',
                             no_tick_labels=True if row != 7 else False,
                             no_tick_marks=True if row != 7 else False,
                         )
                         dpg.add_plot_axis(
-                            dpg.mvYAxis, 
-                            label=f'Ch {i}', 
-                            no_gridlines=True, 
-                            show=True, 
-                            tag=f'panel_yaxis_row{row}_col{col}', 
-                            no_tick_marks=True, 
+                            dpg.mvYAxis,
+                            label=f'Ch {i}',
+                            no_gridlines=True,
+                            show=True,
+                            tag=f'panel_yaxis_row{row}_col{col}',
+                            no_tick_marks=True,
                             no_tick_labels=True
                         )
 
@@ -473,14 +473,14 @@ with dpg.window(
                     height=75, width=-1, tag='spike_range_plot_panel', no_mouse_pos=True
                 ):
                     dpg.add_plot_axis(
-                        dpg.mvXAxis, 
+                        dpg.mvXAxis,
                         tag='xaxis_spk_label_tag_panel',
                         no_gridlines=True,
                         lock_max=True,
                         lock_min=True,
                     )
                     dpg.add_plot_axis(
-                        dpg.mvYAxis, 
+                        dpg.mvYAxis,
                         tag='yaxis_spk_label_tag_panel',
                         no_gridlines=True,
                         lock_max=True,
@@ -489,40 +489,40 @@ with dpg.window(
                         no_tick_marks=True,
                     )
                     dpg.add_drag_line(
-                        label="Start", 
-                        color=[44, 160, 44, 255], 
+                        label="Start",
+                        color=[44, 160, 44, 255],
                         show_label=True,
                         thickness=3,
-                        vertical=True, 
-                        default_value=0, 
+                        vertical=True,
+                        default_value=0,
                         tag='start_drag_panel',
                         callback=start_drag_callback
                     )
                     dpg.add_drag_line(
-                        label="End", 
-                        color=[214, 39, 40, 255], 
+                        label="End",
+                        color=[214, 39, 40, 255],
                         thickness=3,
-                        vertical=True, 
-                        default_value=600, 
+                        vertical=True,
+                        default_value=600,
                         tag='end_drag_panel',
                         callback=end_drag_callback
                     )
         dpg.bind_item_font('spike_range_plot_panel', small_font)
 dpg.bind_item_font('spike_panels_plot', small_font)
-        
+
 
 #   -- PLOTS WINDOW
 cfg_set('locs', {i:None for i in range(cfg_get('max_amplif_channels'))})
 with dpg.window(
     tag='plots_window',
-    pos=[0, cfg_get('menu_bar_height')], 
+    pos=[0, cfg_get('menu_bar_height')],
     no_resize=True,
     show=False,
-    no_move=True, 
-    no_close=True, 
-    no_collapse=True, 
-    no_title_bar=True, 
-    width=cfg_get('viewport_width'), 
+    no_move=True,
+    no_close=True,
+    no_collapse=True,
+    no_title_bar=True,
+    width=cfg_get('viewport_width'),
     height=cfg_get('viewport_height') - cfg_get('menu_bar_height'),
     no_bring_to_front_on_focus=True,
 ):
@@ -533,8 +533,8 @@ with dpg.window(
             dpg.add_spacer(height=15)
             with dpg.group(tag='plot_cntrl_bar_group', horizontal=True):
                 with dpg.table(
-                    tag='plot_cntrl_bar', 
-                    header_row=False, 
+                    tag='plot_cntrl_bar',
+                    header_row=False,
                     policy=dpg.mvTable_SizingFixedFit,
                     width=-1,
                     height=cfg_get('plot_cntrl_bar_height')-15,
@@ -551,42 +551,42 @@ with dpg.window(
                             dpg.add_text("Plot Type:")
                             with dpg.group(tag='dropdown_group'):
                                 dpg.add_combo( # dropdown
-                                    items=["Raw", "Re-Referenced", "Filtered"], 
-                                    enabled=True, 
+                                    items=["Raw", "Re-Referenced", "Filtered"],
+                                    enabled=True,
                                     callback=plot_type_cb,
-                                    default_value="Filtered", 
-                                    width=140, 
+                                    default_value="Filtered",
+                                    width=140,
                                 )
                         with dpg.group(horizontal=True):
                             dpg.add_text('Show Spikes:')
                             dpg.add_checkbox(
-                                callback=toggle_spikes_cb, 
+                                callback=toggle_spikes_cb,
                                 default_value=cfg_get('show_spikes'),
                             )
                         with dpg.group(horizontal=True):
                             dpg.add_text('Playback Speed:')
                             with dpg.group(tag='dropdown_group_2'):
                                 dpg.add_combo( # dropdown
-                                    items=["0.05x", "0.1x", "0.5x", "1x", "2x"], 
-                                    enabled=True, 
+                                    items=["0.01x", "0.05x", "0.1x", "0.5x", "1x", "2x"], 
+                                    enabled=True,
                                     callback=lambda s, a, u: cfg_set('play_speed', a),
-                                    default_value=cfg_get('play_speed'), 
-                                    width=70, 
+                                    default_value=cfg_get('play_speed'),
+                                    width=70,
                                 )
                         with dpg.group(horizontal=True):
                             dpg.add_text('Amp. Ch Heights:')
                             dpg.add_input_int(
                                 tag='amplif_heights_input',
-                                callback=amplif_height_cb, 
-                                default_value=cfg_get('amplif_plot_heights'), 
+                                callback=amplif_height_cb,
+                                default_value=cfg_get('amplif_plot_heights'),
                                 width=100
                             )
-                        with dpg.group(horizontal=True):   
+                        with dpg.group(horizontal=True):
                             dpg.add_text('An. Ch Heights:')
                             dpg.add_input_int(
                                 tag='analog_heights_input',
-                                callback=analog_height_cb, 
-                                default_value=cfg_get('analog_plot_heights'), 
+                                callback=analog_height_cb,
+                                default_value=cfg_get('analog_plot_heights'),
                                 width=100
                             )
                             dpg.add_spacer(width=5)
@@ -616,7 +616,7 @@ with dpg.window(
                     show_spikes = cfg_get('show_spikes')
                     with dpg.subplots(
                         tag='amplif_plots',
-                        no_menus=True, 
+                        no_menus=True,
                         rows=cfg_get('max_amplif_channels')*2,
                         columns=1,
                         width=cfg_get('subplots_width'),
@@ -634,8 +634,8 @@ with dpg.window(
                     ):
                         for i in range(cfg_get('max_amplif_channels')):
                             with dpg.plot(
-                                anti_aliased=False, 
-                                # no_mouse_pos=True, 
+                                anti_aliased=False,
+                                # no_mouse_pos=True,
                                 tag=f'plot{i}',
                                 query=True,
                                 callback=query_cb,
@@ -644,18 +644,18 @@ with dpg.window(
                                 # query_toggle_mod=dpg.mvKey_LShift
                             ):
                                 dpg.add_plot_axis(
-                                    dpg.mvXAxis, 
-                                    tag=f'xaxis_tag{i}', 
-                                    no_gridlines=True, 
-                                    no_tick_marks=True, 
+                                    dpg.mvXAxis,
+                                    tag=f'xaxis_tag{i}',
+                                    no_gridlines=True,
+                                    no_tick_marks=True,
                                     no_tick_labels=True
                                 )
                                 with dpg.plot_axis(
-                                    dpg.mvYAxis, 
-                                    tag=f'yaxis_tag{i}', 
+                                    dpg.mvYAxis,
+                                    tag=f'yaxis_tag{i}',
                                     no_gridlines=True,
-                                    no_tick_marks=True, 
-                                    no_tick_labels=True,  
+                                    no_tick_marks=True,
+                                    no_tick_labels=True,
                                     lock_min=True,
                                     lock_max=True,
                                 ):
@@ -665,7 +665,7 @@ with dpg.window(
                                         x=[0,0], y=[0,0],
                                         show=False,
                                     )
-                                
+
                                     # add dummy car data
                                     dpg.add_line_series(
                                         tag=f're-referenced_data_{i}',
@@ -685,34 +685,34 @@ with dpg.window(
                                 dpg.add_plot_annotation(
 
                                     tag=f'query_text{i}',
-                                    label="100 ms", 
-                                    default_value=(1, 0), 
+                                    label="100 ms",
+                                    default_value=(1, 0),
                                     show=False,
-                                    offset=(15, 15), 
+                                    offset=(15, 15),
                                     color=[0,0,0,255],
                                 )
                                 dpg.bind_item_font(f'query_text{i}', small_font)
                             dpg.bind_item_theme(f'plot{i}', 'test', )
 
                             with dpg.plot(
-                                anti_aliased=False, 
-                                no_mouse_pos=True, 
+                                anti_aliased=False,
+                                no_mouse_pos=True,
                                 tag=f'spk_plot{i}',
                                 no_menus=True,
                             ):
                                 dpg.add_plot_axis(
-                                    dpg.mvXAxis, 
-                                    tag=f'spk_xaxis_tag{i}', 
-                                    no_gridlines=True, 
-                                    no_tick_marks=True, 
+                                    dpg.mvXAxis,
+                                    tag=f'spk_xaxis_tag{i}',
+                                    no_gridlines=True,
+                                    no_tick_marks=True,
                                     no_tick_labels=True
                                 )
                                 with dpg.plot_axis(
-                                    dpg.mvYAxis, 
-                                    tag=f'spk_yaxis_tag{i}', 
+                                    dpg.mvYAxis,
+                                    tag=f'spk_yaxis_tag{i}',
                                     no_gridlines=True,
-                                    no_tick_marks=True, 
-                                    no_tick_labels=True,  
+                                    no_tick_marks=True,
+                                    no_tick_labels=True,
                                     lock_min=True,
                                     lock_max=True,
                                 ):
@@ -722,23 +722,23 @@ with dpg.window(
                                         x=[0,0], y=[0,0],
                                         show=True,
                                     )
-                                dpg.set_axis_limits(f'spk_yaxis_tag{i}', 
-                                                    0.75, 
+                                dpg.set_axis_limits(f'spk_yaxis_tag{i}',
+                                                    0.75,
                                                     1.25)
                                 # dpg.bind_item_theme(f'spikes_{i}', )
                             dpg.bind_item_theme(f'spk_plot{i}', 'test', )
 
                     # dpg.bind_item_theme('amplif_plots', 'subplots_theme')
 
-        dpg.add_spacer(tag='analog_plot_spacer', 
+        dpg.add_spacer(tag='analog_plot_spacer',
                        height=cfg_get('analog_plots_height'))
 
         #  -- X-AXIS TICKS
         with dpg.group(tag='xaxis_labels', height=cfg_get('x_axis_height')):
-            with dpg.table(tag='xaxis_label_table', header_row=False, 
+            with dpg.table(tag='xaxis_label_table', header_row=False,
                         policy=dpg.mvTable_SizingFixedFit):
                 dpg.add_table_column(
-                    width_fixed=True, 
+                    width_fixed=True,
                     init_width_or_weight=cfg_get('channel_labels_width') - 25)
                 dpg.add_table_column(width_stretch=True)
                 # dpg.add_table_column(width_fixed=True, init_width_or_weight=5)
@@ -757,7 +757,7 @@ with dpg.window(
             #  -- X-AXIS LABEL
             with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
                 dpg.add_table_column(
-                    width_fixed=True, 
+                    width_fixed=True,
                     init_width_or_weight=cfg_get('channel_labels_width') - 25)
                 dpg.add_table_column(width_stretch=True, init_width_or_weight=0.5)
                 dpg.add_table_column(width_fixed=True, init_width_or_weight=75)
@@ -772,8 +772,8 @@ with dpg.window(
         dpg.bind_item_font('label_plot', small_font)
 
         #   -- TIME CONTROL BAR
-        with dpg.table(height=cfg_get('time_controls_height'), width=-1, 
-                       tag='time_controls_group', header_row=False, 
+        with dpg.table(height=cfg_get('time_controls_height'), width=-1,
+                       tag='time_controls_group', header_row=False,
                        policy=dpg.mvTable_SizingStretchSame):
             dpg.add_table_column(width_fixed=True, init_width_or_weight=10)
             dpg.add_table_column(width_fixed=True, init_width_or_weight=35)
@@ -787,28 +787,28 @@ with dpg.window(
             with dpg.table_row():
                 dpg.add_text('')
                 with dpg.group(horizontal=True):
-                    dpg.add_image_button("skip_left_disabled_texture", 
-                                         callback=skip_reverse, 
-                                         enabled=False, 
+                    dpg.add_image_button("skip_left_disabled_texture",
+                                         callback=skip_reverse,
+                                         enabled=False,
                                          tag='skip_left_bt')
                 dpg.add_image_button("play_texture", callback=play, tag='play_bt')
-                dpg.add_image_button("pause_disabled_texture", 
-                                     callback=pause, 
-                                     enabled=False, 
+                dpg.add_image_button("pause_disabled_texture",
+                                     callback=pause,
+                                     enabled=False,
                                      tag='pause_bt')
                 with dpg.group():
                     dpg.add_text('00:00 / ??:??', tag='time_text')
                 with dpg.group(tag='time_slider_group', horizontal=True):
-                    dpg.add_slider_int(tag='time_slider', 
-                                       default_value=cfg_get('visible_range')[0], 
-                                       min_value=0, 
-                                       max_value=999, 
-                                       format='', 
-                                       callback=time_slider_drag, 
+                    dpg.add_slider_int(tag='time_slider',
+                                       default_value=cfg_get('visible_range')[0],
+                                       min_value=0,
+                                       max_value=999,
+                                       format='',
+                                       callback=time_slider_drag,
                                        width=-1)
                 dpg.add_text('')
-                dpg.add_image_button('skip_right_texture', 
-                                     callback=skip_forward, 
+                dpg.add_image_button('skip_right_texture',
+                                     callback=skip_forward,
                                      tag='skip_right_bt')
 
         # with dpg.group(horizontal=True, ):
@@ -822,10 +822,10 @@ with dpg.window(
     pos=[1, cfg_get('amplif_plots_height') + 45],
     height=cfg_get('analog_plots_height'),
     width=cfg_get('plots_window_width'),
-    no_move=True, 
-    no_close=True, 
-    no_collapse=True, 
-    no_title_bar=True, 
+    no_move=True,
+    no_close=True,
+    no_collapse=True,
+    no_title_bar=True,
 ):
     with dpg.group(horizontal=True):
         #   -- CHANNEL LABELS
@@ -843,32 +843,32 @@ with dpg.window(
                 width=cfg_get('subplots_width'),
                 height=cfg_get('analog_plot_heights') * cfg_get('max_analog_channels'),
                 link_columns=True,
-                no_menus=True, 
+                no_menus=True,
                 no_resize=True,
             ):
                 for i in range(cfg_get('max_analog_channels')):
                     with dpg.plot(
                         tag=f'a_plot{i}',
-                        height=cfg_get('analog_plot_heights'), 
-                        anti_aliased=False, 
-                        no_mouse_pos=True, 
+                        height=cfg_get('analog_plot_heights'),
+                        anti_aliased=False,
+                        no_mouse_pos=True,
                         query=True,
                         callback=query_cb,
                     ):
                         dpg.add_plot_axis(
-                            dpg.mvXAxis, 
-                            tag=f'a_xaxis_tag{i}', 
-                            show=True, 
-                            no_gridlines=True, 
-                            no_tick_marks=True, 
+                            dpg.mvXAxis,
+                            tag=f'a_xaxis_tag{i}',
+                            show=True,
+                            no_gridlines=True,
+                            no_tick_marks=True,
                             no_tick_labels=True
                         )
                         with dpg.plot_axis(
-                            dpg.mvYAxis, 
-                            tag=f'a_yaxis_tag{i}', 
-                            no_gridlines=True,  
-                            no_tick_marks=True, 
-                            no_tick_labels=True,  
+                            dpg.mvYAxis,
+                            tag=f'a_yaxis_tag{i}',
+                            no_gridlines=True,
+                            no_tick_marks=True,
+                            no_tick_labels=True,
                             lock_min=True,
                             lock_max=True,
                         ):
@@ -881,10 +881,10 @@ with dpg.window(
                         # add dummy query text (time ruler label)
                         dpg.add_plot_annotation(
                             tag=f'a_query_text{i}',
-                            label="100ms", 
-                            default_value=(1, 0), 
+                            label="100ms",
+                            default_value=(1, 0),
                             show=False,
-                            offset=(15, 15), 
+                            offset=(15, 15),
                             color=[0,0,0,255],
                         )
                         dpg.bind_item_font(f'a_query_text{i}', small_font)
@@ -893,20 +893,20 @@ with dpg.window(
 #   -- TABS WINDOW
 with dpg.window(
     tag='tabs_window',
-    pos=[cfg_get('plots_window_width'), cfg_get('menu_bar_height')], 
+    pos=[cfg_get('plots_window_width'), cfg_get('menu_bar_height')],
     show=False,
-    width=cfg_get('tabs_window_width'), 
+    width=cfg_get('tabs_window_width'),
     height=cfg_get('viewport_height') - cfg_get('menu_bar_height'),
-    no_move=True, 
-    no_close=True, 
-    no_collapse=True, 
-    no_title_bar=True, 
+    no_move=True,
+    no_close=True,
+    no_collapse=True,
+    no_title_bar=True,
 ):
     with dpg.group(horizontal=True):
         dpg.add_spacer(width=0)
         with dpg.tab_bar(tag='tab_bar') as tb:
                     tabsize = cfg_get('tabs_window_width') / 3
-                    letter_width = 11.5  
+                    letter_width = 11.5
 
                     # CHANNELS TAB
                     with dpg.tab(label="Channels", tag='channels_tab'):
@@ -914,10 +914,10 @@ with dpg.window(
 
                         dpg.add_spacer(height=10)
                         dpg.add_input_int(
-                            label=" Impedance Limit (kOhms)", 
-                            default_value=cfg_get('impedance_threshold'), 
-                            tag='imp_thresh', 
-                            width=125, 
+                            label=" Impedance Limit (kOhms)",
+                            default_value=cfg_get('impedance_threshold'),
+                            tag='imp_thresh',
+                            width=125,
                             on_enter=True,
                             callback=imp_thresh_callback
                         )
@@ -937,27 +937,27 @@ with dpg.window(
                             ):  # Set desired height and width
                                 with dpg.table(
                                     tag='impedance_table',
-                                    header_row=True, 
-                                    policy=dpg.mvTable_SizingFixedFit, 
+                                    header_row=True,
+                                    policy=dpg.mvTable_SizingFixedFit,
                                 ):
                                     dpg.add_table_column(
-                                        label="Channel #", 
-                                        width_stretch=True, 
+                                        label="Channel #",
+                                        width_stretch=True,
                                         init_width_or_weight=0.3225
                                     )
                                     dpg.add_table_column(
-                                        label="Impedance", 
-                                        width_stretch=True, 
+                                        label="Impedance",
+                                        width_stretch=True,
                                         init_width_or_weight=0.5
                                     )
                                     dpg.add_table_column(
-                                        label="Plot", 
-                                        width_stretch=True, 
+                                        label="Plot",
+                                        width_stretch=True,
                                         init_width_or_weight=0.2
                                     )
                                     dpg.add_table_column(
                                         label="Include in CAR",
-                                        width_stretch=True, 
+                                        width_stretch=True,
                                         init_width_or_weight=0.3
                                     )
                                     for chan in range(n_chans):
@@ -969,19 +969,19 @@ with dpg.window(
                                                 "799.9 kOhm", tag=f'impedance_ch{chan}'
                                             )
                                             dpg.add_checkbox(
-                                                label="", 
-                                                default_value=True, 
+                                                label="",
+                                                default_value=True,
                                                 tag=f'plot_{chan}',
                                                 callback=plot_bt_callback
                                             )
                                             dpg.add_checkbox(
-                                                label="", 
-                                                default_value=True, 
+                                                label="",
+                                                default_value=True,
                                                 tag=f'include_{chan}',
                                                 callback=include_bt_callback,
                                             )
                                 dpg.bind_item_font('impedance_table', med_font)
-                                            
+
                         dpg.add_spacer(height=10)
                         with dpg.group(tag='imp_plot_group'):
                             with dpg.group(horizontal=True):
@@ -992,28 +992,28 @@ with dpg.window(
                                     colormap='jet_colormap',
                                 )
                                 with dpg.plot(
-                                    tag='imp_heatmap', 
-                                    label="Electrode Impedances (kOhms)", 
-                                    no_mouse_pos=True,  
-                                    no_menus=True, 
-                                    height=cfg_get('imp_plot_height'),  
+                                    tag='imp_heatmap',
+                                    label="Electrode Impedances (kOhms)",
+                                    no_mouse_pos=True,
+                                    no_menus=True,
+                                    height=cfg_get('imp_plot_height'),
                                     width=-1
                                 ):
                                     dpg.add_plot_axis(
-                                        dpg.mvXAxis, 
-                                        lock_min=True, 
-                                        lock_max=True, 
-                                        no_gridlines=True, 
+                                        dpg.mvXAxis,
+                                        lock_min=True,
+                                        lock_max=True,
+                                        no_gridlines=True,
                                         no_tick_marks=True,
                                         no_tick_labels=True,
                                     )
                                     dpg.add_plot_axis(
-                                        dpg.mvYAxis, 
+                                        dpg.mvYAxis,
                                         tag='imp_plot_yaxis',
-                                        no_gridlines=True, 
-                                        no_tick_marks=True, 
+                                        no_gridlines=True,
+                                        no_tick_marks=True,
                                         no_tick_labels=True,
-                                        lock_min=True, 
+                                        lock_min=True,
                                         lock_max=True
                                     )
 
@@ -1027,54 +1027,54 @@ with dpg.window(
                             with dpg.table_row():
                                 dpg.add_text('Filter Type:')
                                 dpg.add_combo(
-                                    items=["Butterworth", "Bessel"], 
-                                    default_value=cfg_get('filter_type'), 
-                                    enabled=True, 
+                                    items=["Butterworth", "Bessel"],
+                                    default_value=cfg_get('filter_type'),
+                                    enabled=True,
                                     width=160,
                                     callback=update_filt_type
                                 )
                             with dpg.table_row():
                                 dpg.add_text("Filter Order:")
                                 dpg.add_input_int(
-                                    enabled=True, 
-                                    default_value=cfg_get('filter_order'), 
+                                    enabled=True,
+                                    default_value=cfg_get('filter_order'),
                                     width=100,
                                     on_enter=True,
-                                    callback=update_filt_order, 
+                                    callback=update_filt_order,
                                 )
                             with dpg.table_row():
                                 dpg.add_text('Band Type:')
                                 dpg.add_combo(
-                                    items=['Bandpass', 'Lowpass', 'Highpass'], 
-                                    default_value=cfg_get('band_type'), 
-                                    enabled=True, 
+                                    items=['Bandpass', 'Lowpass', 'Highpass'],
+                                    default_value=cfg_get('band_type'),
+                                    enabled=True,
                                     width=140,
                                     callback=update_band_type
                                 )
                             with dpg.table_row():
                                 dpg.add_text("Low:")
                                 dpg.add_input_int(
-                                    enabled=True, 
-                                    default_value=cfg_get('filter_range')[0], 
-                                    width=130, 
+                                    enabled=True,
+                                    default_value=cfg_get('filter_range')[0],
+                                    width=130,
                                     on_enter=True,
                                     callback=update_low_filter,
                                 )
                             with dpg.table_row():
                                 dpg.add_text("High:")
                                 dpg.add_input_int(
-                                    enabled=True, 
-                                    default_value=cfg_get('filter_range')[1], 
+                                    enabled=True,
+                                    default_value=cfg_get('filter_range')[1],
                                     width=130,
                                     on_enter=True,
-                                    callback=update_high_filter, 
+                                    callback=update_high_filter,
                                 )
                             with dpg.table_row():
                                 dpg.add_text('Notch Filter:')
                                 dpg.add_combo(
-                                    items=['None', '60 Hz'], 
-                                    default_value='60 Hz' if cfg_get('notch_filter') else 'None', 
-                                    enabled=True, 
+                                    items=['None', '60 Hz'],
+                                    default_value='60 Hz' if cfg_get('notch_filter') else 'None',
+                                    enabled=True,
                                     width=100,
                                     callback=update_notch
                                 )
@@ -1082,16 +1082,16 @@ with dpg.window(
                         with dpg.group(tag='filter_plot_group'):
                             with dpg.plot(
                                 height=500, width=-1, no_mouse_pos=True, tag='psd_plot',
-                                no_menus=True, 
+                                no_menus=True,
 
                             ):
                                 dpg.add_plot_axis(
                                     dpg.mvXAxis, tag='psd_xaxis_tag',label="Frequency (Hz)"
                                 )
                                 with dpg.plot_axis(
-                                    dpg.mvYAxis, 
-                                    label="Mean PSD (uV^2/Hz)", 
-                                    tag='psd_yaxis_tag', 
+                                    dpg.mvYAxis,
+                                    label="Mean PSD (uV^2/Hz)",
+                                    tag='psd_yaxis_tag',
                                     log_scale=True,
                                     lock_min=True,
                                     lock_max=True,
@@ -1100,12 +1100,12 @@ with dpg.window(
                                         dpg.add_line_series(
                                             [0,0], [0,0],
                                             tag=f'psd_{l}',
-                                            label=l, 
+                                            label=l,
                                         )
 
                                 dpg.add_plot_legend(
-                                    location=dpg.mvPlot_Location_South, 
-                                    outside=True, 
+                                    location=dpg.mvPlot_Location_South,
+                                    outside=True,
                                     horizontal=True
                                 )
                             dpg.bind_item_font('psd_plot', small_font)
@@ -1123,12 +1123,12 @@ with dpg.window(
                                 dpg.add_input_float(
                                     default_value=cfg_get('threshold_mult'),
                                     format='%.1f',
-                                    tag='thresh_mult', 
+                                    tag='thresh_mult',
                                     width=125,
                                     on_enter=True,
                                     callback=thresh_mult_callback
                                 )
-                        
+
                         dpg.add_spacer(height=10)
 
                         with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
@@ -1140,15 +1140,15 @@ with dpg.window(
                                 dpg.add_text('')
                                 with dpg.group(tag='round_button'):
                                     dpg.add_button(
-                                        label="View All Channels", 
-                                        width=200, 
+                                        label="View All Channels",
+                                        width=200,
                                         tag='view_all_chans',
                                         callback=view_all_chans_callback
                                     )
                                 dpg.add_text('')
 
                         dpg.add_spacer(height=10)
-                        
+
                         with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
                             dpg.add_table_column(width_fixed=True, init_width_or_weight=185)
                             dpg.add_table_column(width_stretch=True)
@@ -1156,11 +1156,11 @@ with dpg.window(
                             with dpg.table_row():
                                 dpg.add_text('Channel to Plot:')
                                 dpg.add_combo(
-                                    items=[f'Ch {i}' for i in range(cfg_get('max_amplif_channels'))], 
-                                    default_value='Ch 00', 
-                                    enabled=True, 
-                                    width=100, 
-                                    tag='spk_sco_ch', 
+                                    items=[f'Ch {i}' for i in range(cfg_get('max_amplif_channels'))],
+                                    default_value='Ch 00',
+                                    enabled=True,
+                                    width=100,
+                                    tag='spk_sco_ch',
                                     callback=spike_chan_callback
                                 )
                             with dpg.table_row():
@@ -1182,18 +1182,18 @@ with dpg.window(
                         with dpg.group(tag='spike_panel_sing_range'):
                             with dpg.plot(
                                 height=75, width=-1, tag='spike_range_plot', no_mouse_pos=True,
-                                no_menus=True, 
+                                no_menus=True,
 
                             ):
                                 dpg.add_plot_axis(
-                                    dpg.mvXAxis, 
+                                    dpg.mvXAxis,
                                     tag='xaxis_spk_label_tag',
                                     no_gridlines=True,
                                     lock_max=True,
                                     lock_min=True,
                                 )
                                 dpg.add_plot_axis(
-                                    dpg.mvYAxis, 
+                                    dpg.mvYAxis,
                                     no_gridlines=True,
                                     lock_max=True,
                                     lock_min=True,
@@ -1201,21 +1201,21 @@ with dpg.window(
                                     no_tick_marks=True,
                                 )
                                 dpg.add_drag_line(
-                                    label="Start", 
-                                    color=[44, 160, 44, 255], 
+                                    label="Start",
+                                    color=[44, 160, 44, 255],
                                     show_label=True,
                                     thickness=3,
-                                    vertical=True, 
-                                    default_value=0, 
+                                    vertical=True,
+                                    default_value=0,
                                     tag='start_drag',
                                     callback=start_drag_callback
                                 )
                                 dpg.add_drag_line(
-                                    label="End", 
-                                    color=[214, 39, 40, 255], 
+                                    label="End",
+                                    color=[214, 39, 40, 255],
                                     thickness=3,
-                                    vertical=True, 
-                                    default_value=600, 
+                                    vertical=True,
+                                    default_value=600,
                                     tag='end_drag',
                                     callback=end_drag_callback
                                 )
@@ -1264,20 +1264,20 @@ dpg.bind_item_handler_registry('analog_plots_child', 'a_plot_resize_handler')
 for i in range(cfg_get('max_amplif_channels')):
     with dpg.item_handler_registry(tag=f'plot{i}_handler') as handler_reg:
         dpg.add_item_clicked_handler(
-            button=dpg.mvMouseButton_Middle, 
-            callback=remove_query_cb, 
-            tag=f'plot{i}_clicked_handler', 
+            button=dpg.mvMouseButton_Middle,
+            callback=remove_query_cb,
+            tag=f'plot{i}_clicked_handler',
         )
-    dpg.bind_item_handler_registry(f'plot{i}', f'plot{i}_handler', ) 
+    dpg.bind_item_handler_registry(f'plot{i}', f'plot{i}_handler', )
 
 for i in range(cfg_get('max_analog_channels')):
     with dpg.item_handler_registry(tag=f'a_plot{i}_handler') as handler_reg:
         dpg.add_item_clicked_handler(
-            button=dpg.mvMouseButton_Middle, 
-            callback=remove_query_cb, 
-            tag=f'a_plot{i}_clicked_handler', 
+            button=dpg.mvMouseButton_Middle,
+            callback=remove_query_cb,
+            tag=f'a_plot{i}_clicked_handler',
         )
-    dpg.bind_item_handler_registry(f'a_plot{i}', f'a_plot{i}_handler', ) 
+    dpg.bind_item_handler_registry(f'a_plot{i}', f'a_plot{i}_handler', )
 
 # dpg.show_style_editor()
 # dpg.show_metrics()
