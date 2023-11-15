@@ -84,22 +84,11 @@ cfg_set('skip_left_enabled', False)
 cfg_set('skip_right_enabled', True)
 cfg_set('plots_window_width', viewport_width * 0.75)
 cfg_set('tabs_window_width', viewport_width * 0.25)
-# cfg_set('bar_heights', (
-#     cfg_get('menu_bar_height') +
-#     cfg_get('menu_bar_height') +
-#     cfg_get('x_axis_height') +
-#     cfg_get('time_controls_height') +
-#     cfg_get('plot_cntrl_bar_height') +
-#     cfg_get('x_axis_height') +
-#     cfg_get('time_controls_height') +
-#     cfg_get('plot_cntrl_bar_height')
-# ))
 cfg_set('bar_heights', (
     cfg_get('menu_bar_height') +
     cfg_get('x_axis_height') +
     cfg_get('time_controls_height') +
     cfg_get('plot_cntrl_bar_height') +
-    # 119
     40
 ))
 cfg_set('subplots_height', viewport_height - cfg_get('bar_heights'))
@@ -185,9 +174,6 @@ jet_colors_adjusted = adjust_color(
 with dpg.colormap_registry():
     dpg.add_colormap(jet_colors_adjusted, False, tag='jet_colormap')
 
-
-
-
 with dpg.theme() as base_theme:
     with dpg.theme_component(dpg.mvImageButton, enabled_state=False):
         dpg.add_theme_color(dpg.mvThemeCol_Button, [45, 45, 46])
@@ -203,10 +189,6 @@ with dpg.theme() as base_theme:
 
         # dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 0, 0, category=dpg.mvThemeCat_Core)
 dpg.bind_theme(base_theme)
-
-
-
-
 
 with dpg.theme() as plots_window_theme:
     with dpg.theme_component(dpg.mvAll):
@@ -250,8 +232,6 @@ with dpg.theme() as time_cntrl_bar_theme:
         dpg.add_theme_color(dpg.mvThemeCol_FrameBgHovered, [45, 45, 46], category=dpg.mvThemeCat_Core)
         dpg.add_theme_color(dpg.mvThemeCol_FrameBgActive, [48, 63, 74], category=dpg.mvThemeCat_Core)
 
-
-
 with dpg.theme() as tabs_window_theme:
     with dpg.theme_component(dpg.mvAll):
         dpg.add_theme_color(dpg.mvThemeCol_Text, [255, 255, 255])
@@ -284,20 +264,9 @@ with dpg.theme() as spike_panel_theme:
         dpg.add_theme_color(dpg.mvThemeCol_FrameBg, [37, 37, 38])
         dpg.add_theme_style(dpg.mvPlotStyleVar_PlotBorderSize, 0, category=dpg.mvThemeCat_Plots)
 
-
-
-
-
-
-
 with dpg.theme() as plots_theme:
     with dpg.theme_component(dpg.mvAll):
         dpg.add_theme_color(dpg.mvThemeCol_FrameBg, [37, 37, 38], category=dpg.mvThemeCat_Core)
-
-
-
-
-
 
 with dpg.theme(tag=f"spike_markers"):
     with dpg.theme_component(dpg.mvAll):
@@ -315,7 +284,6 @@ for i in range(1, int(cfg_get('subplots_width') - 194)):
     with dpg.theme(tag=f'grab_{i}'):
         with dpg.theme_component(dpg.mvAll):
             dpg.add_theme_style(dpg.mvStyleVar_GrabMinSize, i)
-
 
 with dpg.theme(tag='bar_theme'):
     with dpg.theme_component(dpg.mvAll):
@@ -358,21 +326,6 @@ for tag in ['max_t', 'min_t']:
 
 # ------ TEXTURE LOADING ------ #
 
-# #%%
-# import dearpygui.dearpygui as dpg
-# import dearpygui.demo as demo
-
-# dpg.create_context()
-# dpg.create_viewport(title='Custom Title', width=600, height=600)
-
-# demo.show_demo()
-
-# dpg.setup_dearpygui()
-# dpg.show_viewport()
-# dpg.start_dearpygui()
-# dpg.destroy_context()
-# #%%
-
 icon_names = [
     'play', 'play_disabled', 
     'pause', 'pause_disabled',
@@ -408,12 +361,6 @@ with dpg.viewport_menu_bar(tag='menu_bar', show=False):
         )
 
 
-
-# with dpg.window():
-#     dpg.add_slider_int(
-#         width=500,
-#         callback=lambda s,a,u: dpg.configure_item('time_controls_group', height=a)
-#     )
 #   -- DIR SELECTION
 # create a directory selection dialog
 dpg.add_file_dialog(
@@ -565,13 +512,11 @@ with dpg.window(
                         callback=end_drag_callback
                     )
         dpg.bind_item_font('spike_range_plot_panel', small_font)
-    # with dpg.group(horizontal=True):
-    #     dpg.add_spacer(width=cfg_get('subplots_width')*1.25/2-350)
-        
 dpg.bind_item_font('spike_panels_plot', small_font)
+        
 
-cfg_set('locs', {i:None for i in range(cfg_get('max_amplif_channels'))})
 #   -- PLOTS WINDOW
+cfg_set('locs', {i:None for i in range(cfg_get('max_amplif_channels'))})
 with dpg.window(
     tag='plots_window',
     pos=[0, cfg_get('menu_bar_height')], 
@@ -1305,7 +1250,6 @@ dpg.bind_item_theme('dropdown_group', dropdown_theme)
 dpg.bind_item_theme('dropdown_group_2', dropdown_theme)
 
 
-
 with dpg.handler_registry():
     dpg.add_mouse_drag_handler(
         button=dpg.mvMouseButton_Left, callback=plot_drag_callback
@@ -1363,9 +1307,6 @@ while dpg.is_dearpygui_running():
                 dpg.set_axis_limits('a_xaxis_tag0', *new_limits)
             fit_y_axes()
 
-            
     dpg.render_dearpygui_frame()
-
-
 
 dpg.destroy_context()
