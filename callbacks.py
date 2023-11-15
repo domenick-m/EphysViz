@@ -442,7 +442,7 @@ def plot_type_cb(sender, app_data, user_data):
 
 
 def toggle_spikes_cb(sender, app_data, user_data):
-    cfg_set('show_spikes', app_data)
+    cfg_set('show_spikes', int(app_data))
     set_plot_heights(False)
 
 

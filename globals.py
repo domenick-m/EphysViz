@@ -1,7 +1,7 @@
 import os
 import sys
 import configparser
-
+from distutils.util import strtobool
 
 cfg = {}
 data = {'chan_info': {i: {} for i in range(32)}}
@@ -25,8 +25,8 @@ def load_defaults():
     filt_range = read_settings('defaults', 'filter_range', "(250, 5000)")
     filt_range = filt_range.replace('(', '').replace(')', '').split(',')
     cfg['filter_range'] = (int(filt_range[0]), int(filt_range[1]))
-    cfg['notch_filter'] = bool(read_settings('defaults', 'notch_filter', True))
-    cfg['show_spikes'] = bool(read_settings('defaults', 'show_spikes', False))
+    cfg['notch_filter'] = bool(strtobool(read_settings('defaults', 'notch_filter', 'True')))
+    cfg['show_spikes'] = bool(strtobool(read_settings('defaults', 'show_spikes', 'False')))
     cfg['play_speed'] = read_settings('defaults', 'play_speed', '0.5x')
     cfg['spike_chan'] = int(read_settings('defaults', 'spike_chan', 0))
     cfg['threshold_mult'] = float(read_settings('defaults', 'threshold_mult', 4.5))

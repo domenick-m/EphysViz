@@ -181,13 +181,6 @@ with dpg.theme() as base_theme:
 
     with dpg.theme_component(dpg.mvAll):
         dpg.add_theme_style(dpg.mvStyleVar_FramePadding, 4, 4, category=dpg.mvThemeCat_Core)
-    #     dpg.add_theme_style(dpg.mvsafe, 0, 0, category=dpg.mvThemeCat_Core)
-        # dpg.add_theme_style(dpg.mvStyleVar_DisplaySafeAreaPaddings, 3, 20, category=dpg.mvThemeCat_Core)
-    #     dpg.add_theme_style(dpg.mvStyleVar_ItemSpacing, 0, 0, category=dpg.mvThemeCat_Core)
-    #     dpg.add_theme_style(dpg.mvStyleVar_CellPadding, 0, 0, category=dpg.mvThemeCat_Core)
-    #     dpg.add_theme_style(dpg.mvPlotStyleVar_PlotBorderSize, 0, category=dpg.mvThemeCat_Plots)
-
-        # dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 0, 0, category=dpg.mvThemeCat_Core)
 dpg.bind_theme(base_theme)
 
 with dpg.theme() as plots_window_theme:
