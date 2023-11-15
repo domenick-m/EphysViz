@@ -117,6 +117,7 @@ def set_threshold_crossings():
 
 def refresh_plots(new_limits=None, filter_update=False, first_plot=False):
     """ _ """
+    pause()
     if new_limits is None:
         waveform_type = cfg_get('waveform_type')
         def_chan = data_get(f'plotted_chans_{waveform_type.lower()}')[0][1]
@@ -152,7 +153,7 @@ def prepare_plots(first_plot=False):
     set_plot_heights(first_plot)
     waveform_type = cfg_get('waveform_type').lower()
     plotted_chans = data_get(f'plotted_chans_{waveform_type}')
-    for idx, chan in plotted_chans:
+    for idx, (data_idx, chan) in enumerate(plotted_chans):
         color = f'color_{idx % len(colors)}'
         tag = f'{cfg["waveform_type"].lower()}_data_{chan}'
         # set to the correct color
@@ -192,12 +193,14 @@ def update_impedance_table():
             for box in [f'include_{chan}', f'plot_{chan}']:
                 dpg.set_value(box, value=False)
             dpg.configure_item(f'plot_{chan}', enabled=False)
+            dpg.configure_item(f'include_{chan}', enabled=False)
         else:
             for text in [f'tab_ch{chan}', f'impedance_ch{chan}']:
                 dpg.bind_item_theme(text, 'chan')
             for box in [f'include_{chan}', f'plot_{chan}']:
                 dpg.set_value(box, value=True)
             dpg.configure_item(f'plot_{chan}', enabled=True)
+            dpg.configure_item(f'include_{chan}', enabled=True)
 
 
 def plot_spikes():
@@ -213,27 +216,24 @@ def plot_spikes():
             dpg.configure_item(f'spikes_{chan}', show=False)
 
 
-def prepare_spike_panels():
+def prepare_spike_panels(set_xaxis_limits=True):
     """ _ """
     # TODO: CLEAN UP
     spike_range = cfg_get('spike_start'), cfg_get('spike_end')
-    electode_mapping = cfg_get('electode_mapping')
+    electrode_mapping = cfg_get('electrode_mapping')
     filt_data = data_get('filtered_data')
     panel_range = cfg_get('spike_panel_range')
     plot_x = list(range(*panel_range))
     plot_x = np.array(plot_x) / 30
     included_chans = data_get('included_chans_filtered')
-    dpg.configure_item('spk_sco_ch', 
-                       items=[f'Ch {i}' for _, i in included_chans], 
-                       default_value=f'Ch {included_chans[0][1]}')
     panel_chan = int(dpg.get_value('spk_sco_ch').split('Ch ')[1])
     idxs = {chan: idx for idx, chan in data_get('included_chans_filtered')}
     if panel_chan not in idxs:
         panel_chan = included_chans[0][1]
-
+    chans_with_spikes = []
     for row in range(8):
         for col in range(4):
-            chan = electode_mapping[row][col]
+            chan = electrode_mapping[row][col]
             if chan == panel_chan:
                 dpg.delete_item('spike_yaxis_tag', children_only=True)
                 # get crossings less than spike_range[1] and greater than spike_range[0]
@@ -260,18 +260,24 @@ def prepare_spike_panels():
                             dpg.last_item(),
                             f'custom_color_{int((cross) / data_get("n_samples") * 256)}'
                         )
-                threshold = data_get(f'thresholds_{chan}')
-                dpg.add_line_series(x=plot_x,
-                                    y=[-threshold for _ in range(*panel_range)],
-                                    parent='spike_yaxis_tag')
-                dpg.bind_item_theme(dpg.last_item(), 'white_bar')
+
                 y_range = ymax - ymin
                 dpg.set_axis_limits('spike_yaxis_tag', 
                                     ymin - y_range * 0.05, 
                                     ymax + y_range * 0.05)
-                dpg.set_axis_limits('spike_xaxis_tag', 
-                                    panel_range[0]*1.2/30, 
-                                    panel_range[1]*1.2/30)
+                if set_xaxis_limits:
+                    dpg.set_axis_limits('spike_xaxis_tag', 
+                                        panel_range[0]*1.2/30, 
+                                        panel_range[1]*1.2/30)
+                if cfg_get('show_thresholds'):
+                    threshold = data_get(f'thresholds_{chan}')
+                    dpg.add_line_series(label=' Threshold',
+                                        tag='threshold_line',
+                                        x=plot_x,
+                                        y=[-threshold for _ in range(*panel_range)],
+                                        parent='spike_yaxis_tag')
+                    dpg.bind_item_theme(dpg.last_item(), 'white_bar')
+
             tag = f'panel_yaxis_row{row}_col{col}'
             dpg.configure_item(tag, label=f'Ch {chan:02d}')
             dpg.delete_item(tag, children_only=True)
@@ -298,17 +304,23 @@ def prepare_spike_panels():
                                             parent=tag)
                         dpg.bind_item_theme(dpg.last_item(),
                                             f'custom_color_{color_idx}')
-                threshold = data_get(f'thresholds_{chan}')
-                dpg.add_line_series(x=plot_x,
-                                    y=[-threshold for _ in range(*panel_range)],
-                                    parent=tag)
-                dpg.bind_item_theme(dpg.last_item(), 'white_bar')
+                if len(crossings) > 0:
+                    chans_with_spikes.append(f'Ch {chan}')
+                if cfg_get('show_thresholds'):
+                    threshold = data_get(f'thresholds_{chan}')
+                    dpg.add_line_series(tag=f'threshold_line_{chan}',
+                                        x=plot_x,
+                                        y=[-threshold for _ in range(*panel_range)],
+                                        parent=tag)
+                    dpg.bind_item_theme(dpg.last_item(), 'white_bar')
                 dpg.set_axis_limits(tag, ymin*1.1, ymax*1.1)
-                dpg.set_axis_limits(f'panel_xaxis_row{row}_col{col}',
+                if set_xaxis_limits:
+                    dpg.set_axis_limits(f'panel_xaxis_row{row}_col{col}',
                                     panel_range[0]/30, 
                                     panel_range[1]/30)
             else:
                 dpg.configure_item(tag, show=False)
+    dpg.configure_item('spk_sco_ch', items=chans_with_spikes, default_value=f'Ch {panel_chan}')
 
 
 def prepare_impedance_heatmap():
@@ -324,7 +336,7 @@ def prepare_impedance_heatmap():
     dpg.configure_item('colormap_scale', min_scale=min_sc, max_scale=max_sc)
     for row in range(8):
         for col in range(4):
-            ch_idx = cfg_get('electode_mapping')[row][col]
+            ch_idx = cfg_get('electrode_mapping')[row][col]
             color_val = data_get('impedances')[ch_idx] / 1000
             values.append(color_val)
             color_val = max(min_sc, min(color_val, max_sc))
@@ -388,7 +400,7 @@ def align_channel_labels():
                     x_pos, y_pos = dpg.get_item_pos(f'{prefix}plot{chan}')
                     plot_height = cfg_get(f'{channel_type}_plot_heights')
                     dpg.set_item_pos(f'{prefix}ch{chan}', 
-                                     [30, y_pos + plot_height / 2 - 14])
+                                     [10, y_pos + plot_height / 2 - 14])
                 else:
                     dpg.hide_item(f'{prefix}ch{chan}')
 
@@ -417,6 +429,8 @@ def plot_data(plot_range, play=False):
                 dpg.delete_item(ch_tag)
                 dpg.add_line_series(*ch_data, tag=ch_tag, 
                                     parent=f'a_yaxis_tag{chan}')
+                dpg.bind_item_theme(ch_tag, f'color_{chan % n_colors}')
+
             else:
                 dpg.set_value(ch_tag, ch_data)
     if play:
@@ -491,6 +505,7 @@ def unfreeze_x_axes():
         for chan in range(cfg_get('max_analog_channels')):
             dpg.set_axis_limits_auto(f'a_xaxis_tag{chan}')
     dpg.set_axis_limits_auto('psd_xaxis_tag')
+    dpg.set_axis_limits_auto('spike_xaxis_tag')
 
 
 def fit_y_axes(first_plot=False):
@@ -498,8 +513,10 @@ def fit_y_axes(first_plot=False):
     alpha = cfg_get('y_fit_alpha')
     visible_range = cfg_get('visible_range')
     waveform_type = cfg_get('waveform_type').lower()
+    plotted_chans = data_get(f'plotted_chans_{waveform_type}')
 
     new_history = []
+    plotted_data = []
     if not first_plot:
         prev_limits = np.array(cfg_get('y_lim_history')) * alpha
     data = data_get(f'{waveform_type}_data')
@@ -508,10 +525,9 @@ def fit_y_axes(first_plot=False):
     new_limits = np.concatenate((np.min(data, axis=1, keepdims=True), 
                                  np.max(data, axis=1, keepdims=True)), 1)
     new_limits = new_limits * (1 if first_plot else 1 - alpha)
-    plotted_chans = data_get(f'plotted_chans_{waveform_type}')
-    for idx, chan in plotted_chans:
+    for idx, (data_idx, chan) in enumerate(plotted_chans):
         p_lims = prev_limits[idx] if not first_plot else 0
-        smooth_limits = p_lims + new_limits[idx]
+        smooth_limits = p_lims + new_limits[data_idx]
         new_history.append(smooth_limits)
         dpg.set_axis_limits(f'yaxis_tag{chan}', *smooth_limits)
 
@@ -530,7 +546,7 @@ def fit_y_axes(first_plot=False):
     cfg_set('y_lim_history', new_history)
 
 
-def set_plot_heights(first_plot=False):
+def set_plot_heights(first_plot=False, resizing=False):
     """ _ """
     # SHOULD SPLIT FRAME AFTER THIS AND ALIGN CHANNEL LABELS
     
@@ -548,8 +564,13 @@ def set_plot_heights(first_plot=False):
         if chan_info['plot'] and chan_info['incl']:
             chans_to_plot.append(chan)
             # if showing spikes then make room for the spike plot
-            spk_plt_height = cfg_get('show_spikes') * 0.1
-            height_ratios.extend([1 - spk_plt_height, spk_plt_height])
+            # spk_plt_height = cfg_get('show_spikes') * 0.1
+            # height_ratios.extend([1 - spk_plt_height, spk_plt_height])
+            if cfg_get('show_spikes'):
+                height_ratios.extend([0.9, 0.1])
+            else:
+                height_ratios.extend([1, 0])
+                dpg.configure_item(f'spikes_{chan}', show=False)
             
             # only show selected waveform type
             for waveform in ['raw', 'filtered', 're-referenced']:
@@ -563,16 +584,17 @@ def set_plot_heights(first_plot=False):
     na_ch_to_plot = cfg_get('max_analog_channels')
     plot_heights = cfg_get('amplif_plot_heights')
     a_plot_heights = cfg_get('analog_plot_heights')
+
     # resize the amplif plots to match the new number of channels
-    if first_plot:
+    if first_plot or resizing:
         # if first plot and def height is small overwrite it
         min_height = cfg_get('amplif_plots_height') / n_ch_to_plot
-        if plot_heights < min_height:
+        if plot_heights < min_height or resizing:
             cfg_set('amplif_plot_heights', min_height)
             dpg.set_value('amplif_heights_input', min_height)
             plot_heights = min_height
         a_min_height = cfg_get('analog_plots_height') / na_ch_to_plot
-        if a_plot_heights < a_min_height:
+        if a_plot_heights < a_min_height or resizing:
             cfg_set('analog_plot_heights', a_min_height)
             dpg.set_value('analog_heights_input', a_min_height)
             a_plot_heights = a_min_height
@@ -581,6 +603,7 @@ def set_plot_heights(first_plot=False):
                        height=plot_heights * n_ch_to_plot,
                        row_ratios=height_ratios)
     dpg.configure_item('analog_plots', height=a_plot_heights * na_ch_to_plot)
+
 
 def buffer_handler(new_limits, first_plot=False):
     """ _ """
@@ -605,6 +628,13 @@ def buffer_handler(new_limits, first_plot=False):
 #                                   UI FUNCS                                   #
 #------------------------------------------------------------------------------#
 
+def pause(sender=None, app_data=None, user_data=None):
+    cfg_set('paused', True)
+    dpg.configure_item(
+        'pause_bt', enabled=False, texture_tag='pause_disabled_texture')
+    dpg.configure_item('play_bt', enabled=True, texture_tag='play_texture')
+
+
 def get_max_viewport_size():
     """Retrieve the max viewport height and width in pixels."""
     # start the render loop and get the viewport size
@@ -618,12 +648,14 @@ def get_max_viewport_size():
 
 def prepare_time_controls(limits):
     """ _ """
+    limits = max(limits[0], 0), min(limits[1], data_get('n_samples'))
     n_samples = data_get('n_samples')
     _, full_m, full_s = sec_to_hms(n_samples / cfg_get('sample_rate'))
     _, start_m, start_s = sec_to_hms(limits[0] / cfg_get('sample_rate'))
     # set elapsed / full time text
     dpg.set_value('time_text', 
-                  f'{start_m:02d}:{start_s:02d} / {full_m:02d}:{full_s:02d}')
+                  f'{start_m:02d}:{start_s:02d}/{full_m:02d}:{full_s:02d}')
+                #   f'{start_m:02d}:{start_s:02d} / {full_m:02d}:{full_s:02d}')
 
     # set the width of the time slider
     lim_range = limits[1] - limits[0]
@@ -677,8 +709,9 @@ def get_screen_size():
     screen_width = root.winfo_screenwidth()  
     # close the temporary window
     root.destroy() 
-    # return screen_height, int(screen_width)
-    return screen_height - 100, int(screen_width) - 900
+    return screen_height, int(screen_width)
+    # return screen_height, int(screen_width) - 900
+    # return screen_height - 100, int(screen_width) - 900
 
 
 def adjust_color(rgb_colors, brightness_factor, saturation_factor):

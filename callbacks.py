@@ -5,8 +5,91 @@ from intanutil.read_data import read_data
 import numpy as np
 from scipy.signal import bessel, sosfiltfilt, butter, iirnotch, zpk2sos, tf2zpk
 
+def show_thresh_callback(sender, app_data, user_data):
+    cfg_set('show_thresholds', app_data)
+    spike_range = cfg_get('spike_start'), cfg_get('spike_end')
+    electrode_mapping = cfg_get('electrode_mapping')
+    if app_data:
+        panel_range = cfg_get('spike_panel_range')
+        plot_x = list(range(*panel_range))
+        plot_x = np.array(plot_x) / 30
+        panel_chan = int(dpg.get_value('spk_sco_ch').split('Ch ')[1])
+
+        for row in range(8):
+            for col in range(4):
+                chan = electrode_mapping[row][col]
+                tag = f'panel_yaxis_row{row}_col{col}'
+
+                if data_get('chan_info')[chan]['incl']:
+                    crossings = data_get(f'crossings_{chan}')
+                    crossings = crossings[crossings < spike_range[1]]
+                    crossings = crossings[crossings > spike_range[0]]
+                    if len(crossings) > 0:
+                        threshold = data_get(f'thresholds_{chan}')
+                        dpg.add_line_series(tag=f'threshold_line_{chan}',
+                                            label=' Threshold',
+                                            x=plot_x,
+                                            y=[-threshold for _ in range(*panel_range)],
+                                            parent=tag)
+                        dpg.bind_item_theme(dpg.last_item(), 'white_bar')
+        threshold = data_get(f'thresholds_{panel_chan}')
+        dpg.add_line_series(tag='threshold_line',
+                            label=' Threshold',
+                            x=plot_x,
+                            y=[-threshold for _ in range(*panel_range)],
+                            parent='spike_yaxis_tag')
+        dpg.bind_item_theme(dpg.last_item(), 'white_bar')
+    else:
+        dpg.delete_item('threshold_line')
+        for row in range(8):
+            for col in range(4):
+                chan = electrode_mapping[row][col]
+                tag = f'panel_yaxis_row{row}_col{col}'
+                if dpg.get_alias_id(f'threshold_line_{chan}') in dpg.get_item_children(tag)[1]:
+                    dpg.delete_item(f'threshold_line_{chan}')
+
+
+def tab_resize_callback(sender, app_data, user_data):
+    pause()
+    pos = dpg.get_item_pos('tabs_window')
+    width = dpg.get_item_width('tabs_window')
+    height = dpg.get_item_height('tabs_window')
+    # plot_window_width_group
+    new_width = cfg_get('viewport_width') - width
+    cfg_set('plots_window_width', new_width)
+    cfg_set('tabs_window_width', width)
+    dpg.configure_item('amplif_plots', width=new_width)
+    dpg.configure_item('plot_window_width_group', width=new_width)
+    dpg.configure_item('analog_plots_child', width=new_width)
+    dpg.configure_item('analog_plots', width=new_width - cfg_get('channel_labels_width'))
+    dpg.configure_item('amplif_plots', width=new_width - cfg_get('channel_labels_width'))
+    cfg_set('subplots_width', new_width - cfg_get('channel_labels_width'))
+
+
+def a_plot_resize_callback(sender, app_data, user_data):
+    pause()
+    pos = dpg.get_item_pos('analog_plots_child')
+    width = dpg.get_item_width('analog_plots_child')
+    height = dpg.get_item_height('analog_plots_child')
+    # old_height = cfg_get('analog_plots_height')
+
+    new_height = cfg_get('subplots_height') - height
+    dpg.configure_item('amplif_plots_child', height=new_height)
+    dpg.configure_item('analog_plot_spacer', height=height)
+
+    cfg_set('amplif_plots_height', new_height)
+    cfg_set('analog_plots_height', height)
+
+    try:
+        set_plot_heights(resizing=True)
+    except:
+        pass
+    dpg.split_frame()
+    align_channel_labels()
+    
 
 def view_all_chans_callback(sender, app_data, user_data):
+    pause()
     dpg.show_item('spike_panels')
     dpg.split_frame()
     for row in range(8):
@@ -31,7 +114,7 @@ def start_drag_callback(sender, app_data, user_data):
             return
         cfg_set('spike_start', int(new_start * 30))
         with dpg.mutex():
-            prepare_spike_panels()
+            prepare_spike_panels(False)
 
 
 def end_drag_callback(sender, app_data, user_data):
@@ -45,10 +128,11 @@ def end_drag_callback(sender, app_data, user_data):
             return
         cfg_set('spike_end', int(new_end * 30))
         with dpg.mutex():
-            prepare_spike_panels()
+            prepare_spike_panels(False)
 
 
 def thresh_mult_callback(sender, app_data, user_data):
+    pause()
     cfg_set('threshold_mult', app_data)
     set_threshold_crossings()
     prepare_spike_panels()
@@ -101,22 +185,31 @@ def include_bt_callback(sender, app_data, user_data):
     set_included_channels()
 
     refresh_plots(filter_update=True, first_plot=False)
+    dpg.split_frame()
+    fit_y_axes(True)
 
 
 def plot_bt_callback(sender, app_data, user_data):
     chan = int(sender.split('_')[1])
     set_ch_info(chan, 'plot', app_data)
     refresh_plots(filter_update=True, first_plot=False)
+    dpg.split_frame()
+    fit_y_axes(True)
 
 
 def imp_thresh_callback(sender, app_data, user_data):
+    cfg_set('impedance_threshold', app_data)
     sort_channels()    
     update_impedance_table()
     refresh_plots(filter_update=True, first_plot=True)
+    set_threshold_crossings()
+    prepare_spike_panels()
+    plot_spikes()
 
 
 def file_dialog_cb(sender, app_data, user_data):
 
+    dpg.hide_item("analog_plots_child")
     dpg.hide_item("plots_window")
     dpg.hide_item("tabs_window")
     dpg.show_item("loading_indicator")
@@ -154,11 +247,20 @@ def file_dialog_cb(sender, app_data, user_data):
 
     dpg.show_item("plots_window")
     dpg.show_item("tabs_window")
+    if data_get('analog_data') is not None:
+        # analog_plots_child
+        dpg.show_item("analog_plots_child")
+    else:
+        dpg.configure_item('analog_plot_spacer', height=0)
         
     refresh_plots(
         cfg_get('visible_range'), filter_update=True, first_plot=True)
     
     dpg.hide_item("loading_indicator")
+
+    dpg.split_frame()
+    set_plot_heights(False)
+
 
 def skip_reverse(sender, add_data, user_data):
     if cfg_get('paused'):
@@ -185,18 +287,11 @@ def skip_forward(sender, add_data, user_data):
             align_axes('skip_forward', new_limits, True)
 
 
-def play(sender, add_data, user_data):
+def play(sender, app_data, user_data):
     cfg_set('paused', False)
     dpg.configure_item(
         'play_bt', enabled=False, texture_tag='play_disabled_texture')
     dpg.configure_item('pause_bt', enabled=True, texture_tag='pause_texture')
-    
-
-def pause(sender, add_data, user_data):
-    cfg_set('paused', True)
-    dpg.configure_item(
-        'pause_bt', enabled=False, texture_tag='pause_disabled_texture')
-    dpg.configure_item('play_bt', enabled=True, texture_tag='play_texture')
 
 
 def time_slider_drag(sender, app_data, user_data):
@@ -208,6 +303,7 @@ def time_slider_drag(sender, app_data, user_data):
         with dpg.mutex():
             align_axes('time_slider', new_limits, False)
             fit_y_axes()
+
 
 def plot_zoom_callback(sender, app_data, user_data):
     if cfg_get('paused'):
@@ -272,20 +368,20 @@ def plot_type_cb(sender, app_data, user_data):
 def toggle_spikes_cb(sender, app_data, user_data):
     cfg_set('show_spikes', app_data)
     set_plot_heights(False)
-    # dpg.split_frame()
-    # align_channel_labels()
 
 
 def amplif_height_cb(sender, app_data, user_data):
+    pause()
     cfg_set('amplif_plot_heights', app_data)
-    set_plot_heights(False)
+    set_plot_heights(True)
     dpg.split_frame()
-    align_channel_labels()
+    align_channel_labels() 
 
 
 def analog_height_cb(sender, app_data, user_data):
+    pause()
     cfg_set('analog_plot_heights', app_data)
-    set_plot_heights(False)
+    set_plot_heights(True)
     dpg.split_frame()
     align_channel_labels()
 
