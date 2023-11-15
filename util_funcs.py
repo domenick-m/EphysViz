@@ -130,7 +130,7 @@ def refresh_plots(new_limits=None, filter_update=False, first_plot=False):
 
     buffer_handler(new_limits, first_plot)
     prepare_plots(first_plot)
-    fit_y_axes(first_plot)
+    fit_y_axes(first_plot or filter_update)
     prepare_psd()
     set_threshold_crossings()
     prepare_spike_panels()
@@ -279,9 +279,8 @@ def prepare_spike_panels(set_xaxis_limits=True):
                     dpg.bind_item_theme(dpg.last_item(), 'white_bar')
 
             tag = f'panel_yaxis_row{row}_col{col}'
-            dpg.configure_item(tag, label=f'Ch {chan:02d}')
+            dpg.configure_item(tag, label=f'Ch {chan:02d}', show=True)
             dpg.delete_item(tag, children_only=True)
-
             if data_get('chan_info')[chan]['incl']:
                 crossings = data_get(f'crossings_{chan}')
                 crossings = crossings[crossings < spike_range[1]]
@@ -289,6 +288,7 @@ def prepare_spike_panels(set_xaxis_limits=True):
 
                 ymin = 1e10
                 ymax = -1e10
+                tally=0
                 for cross in crossings:
                     color_idx = int((cross) / data_get("n_samples") * 256)
                     x_min = max(cross + panel_range[0], 0)
@@ -297,8 +297,8 @@ def prepare_spike_panels(set_xaxis_limits=True):
                     
                     ymin = min((ymin, min(padded)))
                     ymax = max((ymax, max(padded)))
-
                     if len(plot_x) == len(padded):
+                        tally+=1
                         dpg.add_line_series(x=plot_x,
                                             y=padded,
                                             parent=tag)
@@ -309,6 +309,7 @@ def prepare_spike_panels(set_xaxis_limits=True):
                 if cfg_get('show_thresholds'):
                     threshold = data_get(f'thresholds_{chan}')
                     dpg.add_line_series(tag=f'threshold_line_{chan}',
+                                        label='',
                                         x=plot_x,
                                         y=[-threshold for _ in range(*panel_range)],
                                         parent=tag)
@@ -525,6 +526,13 @@ def fit_y_axes(first_plot=False):
     new_limits = np.concatenate((np.min(data, axis=1, keepdims=True), 
                                  np.max(data, axis=1, keepdims=True)), 1)
     new_limits = new_limits * (1 if first_plot else 1 - alpha)
+
+    ideal_size = len(plotted_chans)
+    if data_get('analog_data') is not None:
+        ideal_size += cfg_get('max_analog_channels')
+    if not first_plot and len(prev_limits) != ideal_size:
+        prev_limits = np.zeros((ideal_size, 2))
+
     for idx, (data_idx, chan) in enumerate(plotted_chans):
         p_lims = prev_limits[idx] if not first_plot else 0
         smooth_limits = p_lims + new_limits[data_idx]
@@ -568,6 +576,7 @@ def set_plot_heights(first_plot=False, resizing=False):
             # height_ratios.extend([1 - spk_plt_height, spk_plt_height])
             if cfg_get('show_spikes'):
                 height_ratios.extend([0.9, 0.1])
+                dpg.configure_item(f'spikes_{chan}', show=True)
             else:
                 height_ratios.extend([1, 0])
                 dpg.configure_item(f'spikes_{chan}', show=False)
@@ -710,8 +719,6 @@ def get_screen_size():
     # close the temporary window
     root.destroy() 
     return screen_height, int(screen_width)
-    # return screen_height, int(screen_width) - 900
-    # return screen_height - 100, int(screen_width) - 900
 
 
 def adjust_color(rgb_colors, brightness_factor, saturation_factor):

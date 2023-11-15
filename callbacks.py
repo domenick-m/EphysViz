@@ -27,7 +27,6 @@ def show_thresh_callback(sender, app_data, user_data):
                     if len(crossings) > 0:
                         threshold = data_get(f'thresholds_{chan}')
                         dpg.add_line_series(tag=f'threshold_line_{chan}',
-                                            label=' Threshold',
                                             x=plot_x,
                                             y=[-threshold for _ in range(*panel_range)],
                                             parent=tag)
@@ -54,16 +53,35 @@ def tab_resize_callback(sender, app_data, user_data):
     pos = dpg.get_item_pos('tabs_window')
     width = dpg.get_item_width('tabs_window')
     height = dpg.get_item_height('tabs_window')
-    # plot_window_width_group
     new_width = cfg_get('viewport_width') - width
-    cfg_set('plots_window_width', new_width)
-    cfg_set('tabs_window_width', width)
-    dpg.configure_item('amplif_plots', width=new_width)
-    dpg.configure_item('plot_window_width_group', width=new_width)
-    dpg.configure_item('analog_plots_child', width=new_width)
-    dpg.configure_item('analog_plots', width=new_width - cfg_get('channel_labels_width'))
-    dpg.configure_item('amplif_plots', width=new_width - cfg_get('channel_labels_width'))
-    cfg_set('subplots_width', new_width - cfg_get('channel_labels_width'))
+    p_height, p_width, p_pos = cfg_get('tabs_window_state')
+
+    if p_width != width and p_pos == pos:
+        cfg_set('tabs_reset_state', True)
+        pos = p_pos
+        width = p_width
+        height = p_height
+
+    elif height != p_height:
+        cfg_set('tabs_reset_state', True)
+        pos = p_pos
+        width = p_width
+        height = p_height
+    else:
+        cfg_set('tabs_moved_state', True)
+        cfg_set('tabs_window_state', (
+            height,
+            width,
+            pos
+        ))
+        cfg_set('plots_window_width', new_width)
+        cfg_set('tabs_window_width', width)
+        dpg.configure_item('amplif_plots', width=new_width)
+        dpg.configure_item('plot_window_width_group', width=new_width)
+        dpg.configure_item('analog_plots_child', width=new_width)
+        dpg.configure_item('analog_plots', width=new_width - cfg_get('channel_labels_width'))
+        dpg.configure_item('amplif_plots', width=new_width - cfg_get('channel_labels_width'))
+        cfg_set('subplots_width', new_width - cfg_get('channel_labels_width'))
 
 
 def a_plot_resize_callback(sender, app_data, user_data):
@@ -71,22 +89,76 @@ def a_plot_resize_callback(sender, app_data, user_data):
     pos = dpg.get_item_pos('analog_plots_child')
     width = dpg.get_item_width('analog_plots_child')
     height = dpg.get_item_height('analog_plots_child')
-    # old_height = cfg_get('analog_plots_height')
+    p_height, p_width, p_pos = cfg_get('analog_window_state')
+    p_tabs_height, p_tabs_width, p_tabs_pos = cfg_get('tabs_window_state')
+    tabs_width = dpg.get_item_width('tabs_window')
 
-    new_height = cfg_get('subplots_height') - height
-    dpg.configure_item('amplif_plots_child', height=new_height)
-    dpg.configure_item('analog_plot_spacer', height=height)
+    if p_height != height and p_pos == pos:
+        cfg_set('analog_reset_state', True)
+        pos = p_pos
+        height = p_height
+        width = p_width
 
-    cfg_set('amplif_plots_height', new_height)
-    cfg_set('analog_plots_height', height)
+    elif p_width != width:
+        cfg_set('analog_reset_state', True)
+        pos = p_pos
+        width = p_width
+        height = p_height
 
-    try:
-        set_plot_heights(resizing=True)
-    except:
-        pass
-    dpg.split_frame()
-    align_channel_labels()
-    
+    else:
+        new_height = cfg_get('subplots_height') - height
+        dpg.configure_item('amplif_plots_child', height=new_height)
+        dpg.configure_item('analog_plot_spacer', height=height)
+
+        cfg_set('amplif_plots_height', new_height)
+        cfg_set('analog_plots_height', height)
+
+        try:
+            set_plot_heights(resizing=True)
+        except:
+            pass
+        dpg.split_frame()
+        align_channel_labels()
+
+    cfg_set('analog_window_state', (
+        height,
+        width,
+        pos
+    ))
+
+
+def mouse_release_callback(sender, app_data, user_data):
+    if cfg_get('analog_reset_state'):
+        if cfg_get('tabs_moved_state'):
+            cfg_set('analog_reset_state', False)
+            cfg_set('tabs_moved_state', False)
+            pos = dpg.get_item_pos('analog_plots_child')
+            width = dpg.get_item_width('analog_plots_child')
+            height = dpg.get_item_height('analog_plots_child')
+            cfg_set('analog_window_state', (height, width, pos))
+        else:
+            height, width, pos = cfg_get('analog_window_state')
+            dpg.configure_item(
+                'analog_plots_child', 
+                height=height,
+                width=width,
+                pos=pos
+            )
+            cfg_set('analog_reset_state', False)
+            
+    elif cfg_get('tabs_reset_state'):
+        height, width, pos = cfg_get('tabs_window_state')
+        dpg.configure_item(
+            'tabs_window', 
+            height=height,
+            width=width,
+            pos=pos
+        )
+        cfg_set('tabs_reset_state', False)
+
+    elif cfg_get('tabs_moved_state'):
+        cfg_set('tabs_moved_state', False)
+
 
 def view_all_chans_callback(sender, app_data, user_data):
     pause()
@@ -192,6 +264,7 @@ def include_bt_callback(sender, app_data, user_data):
 def plot_bt_callback(sender, app_data, user_data):
     chan = int(sender.split('_')[1])
     set_ch_info(chan, 'plot', app_data)
+    set_plotted_channels()
     refresh_plots(filter_update=True, first_plot=False)
     dpg.split_frame()
     fit_y_axes(True)
@@ -205,6 +278,9 @@ def imp_thresh_callback(sender, app_data, user_data):
     set_threshold_crossings()
     prepare_spike_panels()
     plot_spikes()
+    set_plot_heights(resizing=True)
+    dpg.split_frame()
+    align_channel_labels()
 
 
 def file_dialog_cb(sender, app_data, user_data):

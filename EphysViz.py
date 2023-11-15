@@ -37,7 +37,6 @@ dpg.show_viewport()
 
 # get the maximum allowed viewport size
 viewport_height, viewport_width = get_max_viewport_size()
-print(viewport_height, viewport_width)
 cfg_set('viewport_height', viewport_height)
 cfg_set('viewport_width', viewport_width)
 
@@ -75,6 +74,9 @@ cfg_set('channel_labels_width', 115)
 cfg_set('plot_cntrl_bar_height', 39)
 cfg_set('visible_range', (0, 20000)) # 30kHz samples (0.66s)
 cfg_set('spike_panel_range', (-100, 100)) # ms
+cfg_set('analog_reset_state', False)
+cfg_set('tabs_moved_state', False)
+cfg_set('tabs_reset_state', False)
 cfg_set('paused', True)
 cfg_set('should_fit', False)
 cfg_set('show_thresholds', False)
@@ -107,6 +109,16 @@ cfg_set('subplots_width', cfg_get('plots_window_width') - cfg_get('channel_label
 cfg_set('amplif_plot_heights', max(
     cfg_get('amplif_plots_height') / cfg_get('max_amplif_channels'),
     cfg_get('amplif_plot_heights') 
+))
+cfg_set('tabs_window_state', (
+    cfg_get('viewport_height') - cfg_get('menu_bar_height'),
+    cfg_get('tabs_window_width'), 
+    [cfg_get('plots_window_width'), cfg_get('menu_bar_height')], 
+))
+cfg_set('analog_window_state', (
+    cfg_get('analog_plots_height'),
+    cfg_get('plots_window_width'),
+    [1, cfg_get('amplif_plots_height') + 45],
 ))
 cfg_set('electrode_mapping', [
     [13, 10, 7, 3],
@@ -410,7 +422,7 @@ dpg.add_file_dialog(
     show=False, modal=True,
     directory_selector=True,
     height=cfg_get('viewport_height') * 0.65,
-    width=cfg_get('viewport_width') * 0.6,
+    width=cfg_get('viewport_width') * 0.5,
     callback=dir_dialog_cb,
     default_path=read_settings('defaults', 'path', os.path.expanduser('~')),
 )
@@ -424,7 +436,7 @@ with dpg.file_dialog(
     show=True, modal=True,
     directory_selector=False, 
     height=cfg_get('viewport_height') * 0.65, 
-    width=cfg_get('viewport_width') * 0.6,
+    width=cfg_get('viewport_width') * 0.5,
     callback=file_dialog_cb, 
     default_path=read_settings('defaults', 'path', os.path.expanduser('~'))
 ):
@@ -472,7 +484,7 @@ with dpg.window(
                     with dpg.plot(
                         tag=f'spike_panel_row{row}_col{col}',
                         height=plot_size, 
-                        width=plot_size*1.25
+                        width=plot_size*1.25,
                     ):
                         dpg.add_plot_axis(
                             dpg.mvXAxis, 
@@ -563,6 +575,7 @@ cfg_set('locs', {i:None for i in range(cfg_get('max_amplif_channels'))})
 with dpg.window(
     tag='plots_window',
     pos=[0, cfg_get('menu_bar_height')], 
+    no_resize=True,
     show=False,
     no_move=True, 
     no_close=True, 
@@ -659,12 +672,12 @@ with dpg.window(
 
                 #   -- SUBPLOTS
                 with dpg.group(tag='amplif_plots_group'):
-                    show_spikes = read_settings('defaults', 'show_spikes', False)
+                    show_spikes = cfg_get('show_spikes')
                     with dpg.subplots(
                         tag='amplif_plots',
+                        no_menus=True, 
                         rows=cfg_get('max_amplif_channels')*2,
                         columns=1,
-                        # width=-1,
                         width=cfg_get('subplots_width'),
                         height=(
                             cfg_get('amplif_plot_heights') * \
@@ -889,6 +902,7 @@ with dpg.window(
                 width=cfg_get('subplots_width'),
                 height=cfg_get('analog_plot_heights') * cfg_get('max_analog_channels'),
                 link_columns=True,
+                no_menus=True, 
                 no_resize=True,
             ):
                 for i in range(cfg_get('max_analog_channels')):
@@ -1040,6 +1054,7 @@ with dpg.window(
                                     tag='imp_heatmap', 
                                     label="Electrode Impedances (kOhms)", 
                                     no_mouse_pos=True,  
+                                    no_menus=True, 
                                     height=cfg_get('imp_plot_height'),  
                                     width=-1
                                 ):
@@ -1125,7 +1140,9 @@ with dpg.window(
                         dpg.add_spacer(height=40)
                         with dpg.group(tag='filter_plot_group'):
                             with dpg.plot(
-                                height=500, width=-1, no_mouse_pos=True, tag='psd_plot'
+                                height=500, width=-1, no_mouse_pos=True, tag='psd_plot',
+                                no_menus=True, 
+
                             ):
                                 dpg.add_plot_axis(
                                     dpg.mvXAxis, tag='psd_xaxis_tag',label="Frequency (Hz)"
@@ -1213,7 +1230,7 @@ with dpg.window(
 
                                 )
                         with dpg.group(tag='panel_plot_single'):
-                            with dpg.plot(height=500, width=-1, tag='spike_panel_plot'):
+                            with dpg.plot(height=500, width=-1, tag='spike_panel_plot', no_menus=True,):
                                 dpg.add_plot_axis(dpg.mvXAxis, label="Time relative to crossing (ms)",  tag='spike_xaxis_tag')
                                 dpg.add_plot_axis(dpg.mvYAxis, label="Voltage (uV)", tag='spike_yaxis_tag')
                                 dpg.add_plot_legend(location=dpg.mvPlot_Location_SouthEast, horizontal=True)
@@ -1223,7 +1240,9 @@ with dpg.window(
                         dpg.add_text("Plot Crossings within Range:")
                         with dpg.group(tag='spike_panel_sing_range'):
                             with dpg.plot(
-                                height=75, width=-1, tag='spike_range_plot', no_mouse_pos=True
+                                height=75, width=-1, tag='spike_range_plot', no_mouse_pos=True,
+                                no_menus=True, 
+
                             ):
                                 dpg.add_plot_axis(
                                     dpg.mvXAxis, 
@@ -1292,6 +1311,7 @@ with dpg.handler_registry():
         button=dpg.mvMouseButton_Left, callback=plot_drag_callback
     )
     dpg.add_mouse_wheel_handler(callback=plot_zoom_callback)
+    dpg.add_mouse_release_handler(callback=mouse_release_callback)
 
 with dpg.item_handler_registry(tag='tab_resize_handler') as test:
     dpg.add_item_resize_handler(callback=tab_resize_callback)
@@ -1319,7 +1339,7 @@ for i in range(cfg_get('max_analog_channels')):
         )
     dpg.bind_item_handler_registry(f'a_plot{i}', f'a_plot{i}_handler', ) 
 
-dpg.show_style_editor()
+# dpg.show_style_editor()
 # dpg.show_metrics()
 
 # ------ RENDER LOOP ------ #
@@ -1342,6 +1362,7 @@ while dpg.is_dearpygui_running():
             if data_get('analog_data') is not None:
                 dpg.set_axis_limits('a_xaxis_tag0', *new_limits)
             fit_y_axes()
+
             
     dpg.render_dearpygui_frame()
 
