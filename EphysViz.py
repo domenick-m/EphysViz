@@ -29,14 +29,17 @@ dpg.create_viewport(
     width=screen_width,
     vsync=True
 )
-dpg.set_viewport_vsync(False)
+# dpg.set_viewport_vsync(False)
 
 # setup dearpygui and show the viewport
 dpg.setup_dearpygui()
 dpg.show_viewport()
 
+dpg.maximize_viewport()
+
 # get the maximum allowed viewport size
-viewport_height, viewport_width = get_max_viewport_size()
+viewport_height, viewport_width = dpg.get_viewport_height() - 65, dpg.get_viewport_width()
+# viewport_height, viewport_width = get_max_viewport_size()
 cfg_set('viewport_height', viewport_height)
 cfg_set('viewport_width', viewport_width)
 
