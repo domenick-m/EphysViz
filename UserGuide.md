@@ -111,7 +111,7 @@ The axis label is for both the amplifier and analog plots and shows the time (in
 
 ### Channels
 
-<img src="images/channels_tab.png" height="500">
+<img src="images/channels_tab.png" height="700">
 
 - **Impedance Limit**
     - Sets the limit for which all channels with an impedance over this will not be included in CAR and not be plotted. The include / plot buttons for those channels will become disabled (meaning they cant be interacted with) and turn red.
