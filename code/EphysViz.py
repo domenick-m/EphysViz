@@ -410,7 +410,7 @@ with dpg.window(
     modal=True,
     show=False,
     no_scrollbar=True,
-):  
+):
     # total spikes label
     with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.5)
@@ -457,7 +457,7 @@ with dpg.window(
                             no_tick_marks=True,
                             no_tick_labels=True
                         )
-    
+
     with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.43)
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
@@ -580,7 +580,7 @@ with dpg.window(
                             dpg.add_text('Playback Speed:')
                             with dpg.group(tag='dropdown_group_2'):
                                 dpg.add_combo( # dropdown
-                                    items=["0.01x", "0.05x", "0.1x", "0.5x", "1x", "2x"], 
+                                    items=["0.01x", "0.05x", "0.1x", "0.5x", "1x", "2x"],
                                     enabled=True,
                                     callback=lambda s, a, u: cfg_set('play_speed', a),
                                     default_value=cfg_get('play_speed'),
@@ -1190,9 +1190,9 @@ with dpg.window(
                         with dpg.group(tag='panel_plot_single'):
                             with dpg.plot(
                                 label='Ch 00 - 3 Spikes',
-                                height=500, 
-                                width=-1, 
-                                tag='spike_panel_plot', 
+                                height=500,
+                                width=-1,
+                                tag='spike_panel_plot',
                                 no_menus=True
                             ):
                                 dpg.add_plot_axis(dpg.mvXAxis, label="Time relative to crossing (ms)",  tag='spike_xaxis_tag')
@@ -1357,7 +1357,7 @@ for i in range(cfg_get('max_analog_channels')):
         )
     dpg.bind_item_handler_registry(f'a_plot{i}', f'a_plot{i}_handler', )
 
-dpg.show_style_editor()
+# dpg.show_style_editor()
 # dpg.show_metrics()
 
 # ------ RENDER LOOP ------ #
