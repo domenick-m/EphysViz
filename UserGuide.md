@@ -111,193 +111,60 @@ The axis label is for both the amplifier and analog plots and shows the time (in
 
 ### Channels
 
-<table>
-  <tr>
-    <td>
-      <img src="images/channels_tab.png" height="500">
-    </td>
-    <td width="500">
-      <h3>Impedance Limit</h3>
-      <ul>
-        <li>Sets the limit for which all channels with an impedance over this will not be included in CAR and not be plotted. The include / plot buttons for those channels will become disabled (meaning they cant be interacted with) and turn red.</li>
-      </ul>
-      <h3>Channel List</h3>
-      <ul>
-        <li>Displays a comprehensive list of all channels with their respective properties like channel number, name, and impedance values.</li>
-        <ul>
-            <li>Channel: The channel number</li>
-            <li>Impedance: The impedance value of the channel</li>
-            <li>Plot: Whether or not the channel is plotted in the amplifier plots</li>
-            <li>Include in CAR: Whether or not the channel is included in the common average reference calculation</li>
-        </ul>
-      </ul>
-      <h3>Impedance Plot</h3>
-      <ul>
-        <li>Visualizes the impedance values of each channel in a graphical format, aiding in quick assessment of channel quality.</li>
-      </ul>
-    </td>
-  </tr>
-</table>
+<img src="images/channels_tab.png" height="500">
+
+- **Impedance Limit**
+    - Sets the limit for which all channels with an impedance over this will not be included in CAR and not be plotted. The include / plot buttons for those channels will become disabled (meaning they cant be interacted with) and turn red.
+
+- **Channel List**
+    - Shows the impedance values of the channels and lets you select which channels are plotted and included in the common average reference calculation. The channel list has the following columns:
+        - **Channel**: The channel number
+        - **Impedance**: The impedance value of the channel
+        - **Plot**: Whether or not the channel is plotted in the amplifier plots
+        - **Include in CAR**: Whether or not the channel is included in the common average reference calculation
+
+- **Electrode Impedance Plot**
+    - Shows the channels on the 4 shanks in their true mapping (from Neuroplex to Intan). 
 
 ### Filtering
-<table>
-  <tr>
-    <td>
-      <img src="images/filtering_tab.png" height="600">
-    </td>
-    <td>
-      <h3>Filtering Parameters</h3>
-      <ul>
-        <li>Enables customization of filtering parameters like cutoff frequencies, allowing users to refine signal processing.</li>
-      </ul>
-      <h3>PSD Plot</h3>
-      <ul>
-        <li>Shows the Power Spectral Density (PSD) plot, providing insights into the frequency distribution of the recorded signals.</li>
-      </ul>
-    </td>
-  </tr>
-</table>
+<img src="images/filtering_tab.png" height="600">
+
+- **Filtering Parameters**
+    - Enables customization of filtering parameters like cutoff frequencies, allowing users to refine signal processing.
+
+- **PSD Plot**
+    - Shows the Power Spectral Density (PSD) plot, providing insights into the frequency distribution. Can be zoomed in/out with scroll and can drag to pan, double click to zoom out all the way. Can click entries on the legend to toggle them on/off.
 
 ### Spikes
-<table>
-  <tr>
-    <td>
-      <img src="images/spikes_tab.png" height="800">
-    </td>
-    <td>
-      <h3>Threshold Multiplier</h3>
-      <ul>
-        <li>Allows adjustment of the threshold multiplier for spike detection, tailoring the sensitivity of spike identification.</li>
-      </ul>
-      <h3>View All Channels</h3>
-      <ul>
-        <li>Enables simultaneous viewing of spike activity across all channels, offering a comprehensive overview.</li>
-      </ul>
-      <h3>Single Channel Threshold Crossings</h3>
-        <ul>
-            <li><b>Channel to Plot:</b></li>
-            <ul>
-                <li>Facilitates selection of a specific channel for detailed analysis of spike events and threshold crossings.</li>
-            </ul>
-            <li><b>Show Threshold:</b></li>
-            <ul>
-                <li>Activates the display of threshold lines on the plot, making it easier to visualize spike occurrences.</li>
-            </ul>
-            <li><b>Threshold Crossings Plot</b></li>
-            <ul>
-                <li>Provides a detailed visual representation of moments where the signal crosses the set threshold on the selected channel.</li>
-            </ul>
-            <li><b>Plot Crossings within Range:</b></li>
-            <ul>
-                <li>Enables users to focus on spike events within a specific time range, enhancing targeted analysis.</li>
-            </ul>
-            <li><b>Exclude Period:</b></li>
-            <ul>
-                <li>Offers the option to exclude a specific period from the spike analysis, useful in eliminating artifacts or irrelevant data segments.</li>
-                <li><b>Period to Exclude</b>: Allows setting of the specific time range to be excluded from analysis.</li>
-            </ul>
-    </td>
-  </tr>
-</table>
+
+<img src="images/spikes_tab.png" height="700">
+
+- **Threshold Multiplier**
+    - The threshold multiplier is multiplied by the RMS (the square root of the mean square) to get the threshold used for computing the threshold crossings.
+
+- **View All Channels**
+    - Opens the [spike panel](#spike-panel) to look at the threshold crossings for all channels at once.
+
+- **Channel to Plot:**
+    - Choose channel to plot the threshold crossings for in the single.
+
+- **Show Threshold:**
+    - Plots a white line to visualize where the threshold is for the threshold crossings.
+
+- **Threshold Crossings Plot**
+    - Shows the activity around the threshold crossings for a single channel.
+
+- **Plot Crossings within Range:**
+    - Can drag the range to only show the spikes from within a specific range.
+
+- **Exclude Period:**
+    - Can check this to exclude a time period from the threshold calculation.
+
+    - **Period to Exclude**: 
+        - This start and end range of the period to exclude.
 
 #### Spike Panel
 <img src="images/spike_panel.png" height="650">
 
-<li><b>Plot Crossings within Range:</b></li>
-<ul>
-    <li>Enables visualization of spike threshold crossings within a user-defined time range, facilitating focused analysis of spike
-
- activity.</li>
-</ul>
-
-<!-- ### Channels
-
-<table>
-  <tr>
-    <td>
-      <img src="images/channels_tab.png" height="500">
-    </td>
-    <td>
-      <h3>Impedance Limit</h3>
-      <ul>
-        <li>Content for sub list item 1 goes here.</li>
-      </ul>
-      <h3>Channel List</h3>
-      <ul>
-        <li>Content for sub list item 1 goes here.</li>
-      </ul>
-      <h3>Impedance Plot</h3>
-      <ul>
-        <li>Content for sub list item 1 goes here.</li>
-      </ul>
-    </td>
-  </tr>
-</table>
-
-### Filtering
-<table>
-  <tr>
-    <td>
-      <img src="images/filtering_tab.png" height="600">
-    </td>
-    <td>
-      <h3>Filtering Parameters</h3>
-      <ul>
-        <li>Content for sub list item 1 goes here.</li>
-      </ul>
-      <h3>PSD Plot</h3>
-      <ul>
-        <li>Content for sub list item 1 goes here.</li>
-      </ul>
-    </td>
-  </tr>
-</table>
-
-### Spikes
-<table>
-  <tr>
-    <td>
-      <img src="images/spikes_tab.png" height="800">
-    </td>
-    <td>
-      <h3>Threshold Multiplier</h3>
-      <ul>
-        <li>Content for sub list item 1 goes here.</li>
-      </ul>
-      <h3>View All Channels</h3>
-      <ul>
-        <li>Content for sub list item 1 goes here.</li>
-      </ul>
-      <h3>Single Channel Threshold Crossings</h3>        <ul>
-            <li><b>Channel to Plot:</b></li>
-            <ul>
-                <li>Content for sub list item 1 goes here.</li>
-            </ul>
-            <li><b>Show Threshold:</b></li>
-            <ul>
-                <li>Content for sub list item 1 goes here.</li>
-            </ul>
-            <li><b>Threhold Crossings Plot</b></li>
-            <ul>
-                <li>Content for sub list item 1 goes here.</li>
-            </ul>
-            <li><b>Plot Crossings within Range:</b></li>
-            <ul>
-                <li>Content for sub list item 1 goes here.</li>
-            </ul>
-            <li><b>Exclude Period:</b></li>
-            <ul>
-                <li>Whether or not the period in time defined by the slider below is excluded from the threshold calculation / threshold crossing plots</li>
-                <li><b>Period to Exclude</b>: </li>
-            </ul>
-    </td>
-  </tr>
-</table>
-
-#### Spike Panel
-<img src="images/spike_panel.png" height="650">
-
-<li><b>Plot Crossings within Range:</b></li>
-<ul>
-    <li>Content for sub list item 1 goes here.</li>
-</ul> -->
+- **Plot Crossings within Range:**
+    - Can drag the range to only show the spikes from within a specific range.

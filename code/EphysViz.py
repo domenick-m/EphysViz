@@ -1141,6 +1141,17 @@ with dpg.window(
                                     on_enter=True,
                                     callback=thresh_mult_callback
                                 )
+                        with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
+                            dpg.add_table_column(width_fixed=True, init_width_or_weight=170)
+                            dpg.add_table_column(width_stretch=True)
+
+                            with dpg.table_row():
+                                dpg.add_text('Show Threshold:')
+                                dpg.add_checkbox(
+                                    default_value=False,
+                                    callback=show_thresh_callback,
+
+                                )
 
                         dpg.add_spacer(height=10)
 
@@ -1175,13 +1186,6 @@ with dpg.window(
                                     width=100,
                                     tag='spk_sco_ch',
                                     callback=spike_chan_callback
-                                )
-                            with dpg.table_row():
-                                dpg.add_text('Show Threshold:')
-                                dpg.add_checkbox(
-                                    default_value=False,
-                                    callback=show_thresh_callback,
-
                                 )
                         with dpg.group(tag='panel_plot_single'):
                             with dpg.plot(
