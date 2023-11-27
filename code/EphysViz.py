@@ -35,7 +35,7 @@ dpg.create_viewport(
 dpg.setup_dearpygui()
 dpg.show_viewport()
 
-# dpg.maximize_viewport()
+dpg.maximize_viewport()
 
 # get the maximum allowed viewport size
 viewport_height, viewport_width = dpg.get_viewport_height() - 65, dpg.get_viewport_width()
