@@ -88,7 +88,7 @@ cfg_set('skip_left_enabled', False)
 cfg_set('skip_right_enabled', True)
 cfg_set('plots_window_width', viewport_width * 0.75)
 cfg_set('tabs_window_width', viewport_width * 0.25)
-cfg_set('panel_label_spaces', int((cfg_get('viewport_width') - 50) / 4 * 0.07))
+cfg_set('panel_label_spaces', int((cfg_get('viewport_width') - 50) / 4 * 0.06))
 cfg_set('bar_heights', (
     cfg_get('menu_bar_height') +
     cfg_get('x_axis_height') +
@@ -409,7 +409,7 @@ with dpg.window(
     tag='spike_panels',
     modal=True,
     show=False,
-    no_scrollbar=True
+    no_scrollbar=True,
 ):  
     # total spikes label
     with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
@@ -425,7 +425,7 @@ with dpg.window(
             8,
             4,
             width=cfg_get('viewport_width')-50,
-            height=cfg_get('subplots_height')-90,
+            height=cfg_get('subplots_height')-100,
             # no_title=True,
             no_menus=True,
             no_resize=True,
@@ -464,15 +464,17 @@ with dpg.window(
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.23)
         with dpg.table_row():
             dpg.add_text('')
-            dpg.add_text("Time relative to crossing (ms)")
-    dpg.add_spacer(height=2.5)
+            dpg.add_text("Time relative to crossing (ms)", tag='spike_panel_time_label')
+    dpg.set_item_font('spike_panel_time_label', small_font)
+    dpg.add_spacer(height=1)
     with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
         with dpg.table_row():
             dpg.add_text('')
-            dpg.add_text("Plot Crossings within Range:")
+            dpg.add_text("Plot Crossings within Range:", tag='spike_panel_range_label')
+    dpg.set_item_font('spike_panel_range_label', small_font)
     with dpg.table(header_row=False, policy=dpg.mvTable_SizingFixedFit):
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
         dpg.add_table_column(width_stretch=True, init_width_or_weight=0.33)
@@ -1089,7 +1091,7 @@ with dpg.window(
                                     width=100,
                                     callback=update_notch
                                 )
-                        dpg.add_spacer(height=40)
+                        dpg.add_spacer(height=30)
                         with dpg.group(tag='filter_plot_group'):
                             with dpg.plot(
                                 height=500, width=-1, no_mouse_pos=True, tag='psd_plot',

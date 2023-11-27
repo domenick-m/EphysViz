@@ -385,7 +385,6 @@ def file_dialog_cb(sender, app_data, user_data):
     dpg.split_frame()
     set_plot_heights(False)
 
-
 def skip_reverse(sender, add_data, user_data):
     if cfg_get('paused'):
         waveform_type = cfg_get('waveform_type').lower()

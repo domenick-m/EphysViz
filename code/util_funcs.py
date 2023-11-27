@@ -739,7 +739,7 @@ def get_screen_size():
     screen_width = root.winfo_screenwidth()  
     # close the temporary window
     root.destroy() 
-    # return screen_height, int(screen_width - 900)
+    return screen_height-0, int(screen_width - 900)
     return screen_height, int(screen_width)
 
 
