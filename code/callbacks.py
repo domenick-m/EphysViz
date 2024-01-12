@@ -1,7 +1,8 @@
 import dearpygui.dearpygui as dpg
 from util_funcs import *
 from globals import *
-from intanutil.read_data import read_data
+from intanutil_rhs.read_data import read_data as rhs_read_data
+from intanutil_rhd.read_data import read_data as rhd_read_data
 import numpy as np
 from scipy.signal import bessel, sosfiltfilt, butter, iirnotch, zpk2sos, tf2zpk
 
@@ -330,17 +331,23 @@ def file_dialog_cb(sender, app_data, user_data):
     dpg.show_item("loading_indicator")
 
     # load in the data from file
-    rhs_data = read_data(list(app_data['selections'].values())[0])
-    data_set('n_samples', rhs_data['amplifier_data'].shape[1])
-    data_set('raw_data', rhs_data['amplifier_data'])
+
+    filename = list(app_data['selections'].values())[0]
+    file_extension = filename.split('.')[-1]
+    if file_extension == 'rhs':
+        read_data = rhs_read_data(filename=filename)
+    else:
+        read_data = rhd_read_data(filename=filename)
+    data_set('n_samples', read_data['amplifier_data'].shape[1])
+    data_set('raw_data', read_data['amplifier_data'])
     
     # extract the 30kHz analog data
     data_set(
         'analog_data', 
-        rhs_data['board_adc_data'] if 'board_adc_data' in rhs_data else None)
+        read_data['board_adc_data'] if 'board_adc_data' in read_data else None)
     
     # extract the impedances
-    channel_info = rhs_data['amplifier_channels']
+    channel_info = read_data['amplifier_channels']
     data_set('impedances', [
         chan['electrode_impedance_magnitude'] for chan in channel_info
     ])

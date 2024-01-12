@@ -1,11 +1,11 @@
 import sys, struct, math, os, time
 import numpy as np
 
-from intanutil.read_header import read_header
-from intanutil.get_bytes_per_data_block import get_bytes_per_data_block
-from intanutil.read_one_data_block import read_one_data_block
-from intanutil.notch_filter import notch_filter
-from intanutil.data_to_result import data_to_result
+from intanutil_rhs.read_header import read_header
+from intanutil_rhs.get_bytes_per_data_block import get_bytes_per_data_block
+from intanutil_rhs.read_one_data_block import read_one_data_block
+from intanutil_rhs.notch_filter import notch_filter
+from intanutil_rhs.data_to_result import data_to_result
 
 
 def read_data(filename):

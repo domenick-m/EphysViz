@@ -1,3 +1,6 @@
 code/build/*
 code/dist/*
 *.spec
+*.rhs
+*.rhd
+__pycache__/

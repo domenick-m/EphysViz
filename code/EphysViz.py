@@ -385,8 +385,13 @@ with dpg.file_dialog(
     callback=file_dialog_cb,
     default_path=read_settings('defaults', 'path', os.path.expanduser('~'))
 ):
+    # rhs file extension in drop down
     dpg.add_file_extension('.rhs', color=(0, 255, 0, 255))
     dpg.add_file_extension('.RHS', color=(0, 255, 0, 255))
+
+    # rhd file selection in drop down
+    dpg.add_file_extension('.rhd', color=(0, 255, 0, 255))
+    dpg.add_file_extension('.RHD', color=(0, 255, 0, 255))
 
 
 #   -- LOADING INDICATOR
