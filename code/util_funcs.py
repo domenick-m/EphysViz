@@ -62,7 +62,9 @@ def car_data():
     # average across channels for all time points and subtract from each channel
     included_chans = [i for _, i in data_get('included_chans_raw')]
     incl_data = data_get('raw_data')[included_chans] # (C, T)
-    data_set('re-referenced_data', incl_data - np.mean(incl_data, axis=0))   
+    #data_set('re-referenced_data', incl_data - np.mean(incl_data, axis=0))   
+    data_set('re-referenced_data', incl_data)
+
 
 
 def build_filter():
@@ -92,7 +94,8 @@ def filter_data():
     data = data_get('re-referenced_data').T
     if cfg_get('notch_filter'):
         data = sosfiltfilt(data_get('notch_sos'), data, axis=0)
-    data_set('filtered_data', sosfiltfilt(data_get('filter'), data, axis=0).T)
+    data_set('filtered_data',data.T) # double etranpose is the original shape
+    #data_set('filtered_data', sosfiltfilt(data_get('filter'), data, axis=0).T)
 
 
 def set_threshold_crossings():
