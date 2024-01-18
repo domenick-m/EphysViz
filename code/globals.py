@@ -4,8 +4,8 @@ import configparser
 from distutils.util import strtobool
 
 cfg = {}
-data = {'chan_info': {i: {} for i in range(32)}}
-
+#data = {'chan_info': {i: {} for i in range(32)}}
+data = {'chan_info': {i: {} for i in range(16)}}
 def load_defaults():
     # load default configs from settings.ini
     global cfg

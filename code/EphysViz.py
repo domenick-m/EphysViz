@@ -10,7 +10,8 @@ from globals import *
 
 # set static configs
 cfg_set('app_name', 'EphysViz')
-cfg_set('max_amplif_channels', 32) # NeuroNexus
+#cfg_set('max_amplif_channels', 32) # NeuroNexus
+cfg_set('max_amplif_channels', 16) # RHD File hot fix for now
 cfg_set('max_analog_channels', 2) # EKG
 cfg_set('sample_rate', 30000) # Hz
 
@@ -927,113 +928,114 @@ with dpg.window(
                     letter_width = 11.5
 
                     # CHANNELS TAB
-                    with dpg.tab(label="Channels", tag='channels_tab'):
-                        n_chans = cfg_get('max_amplif_channels')
+                    # with dpg.tab(label="Channels", tag='channels_tab'):
+                    #     n_chans = cfg_get('max_amplif_channels')
 
-                        dpg.add_spacer(height=10)
-                        dpg.add_input_int(
-                            label=" Impedance Limit (kOhms)",
-                            default_value=cfg_get('impedance_threshold'),
-                            tag='imp_thresh',
-                            width=125,
-                            on_enter=True,
-                            callback=imp_thresh_callback
-                        )
-                        dpg.bind_item_font('imp_thresh', med_font)
-                        dpg.add_spacer(height=10)
+                    #     dpg.add_spacer(height=10)
+                    #     dpg.add_input_int(
+                    #         label=" Impedance Limit (kOhms)",
+                    #         default_value=cfg_get('impedance_threshold'),
+                    #         tag='imp_thresh',
+                    #         width=125,
+                    #         on_enter=True,
+                    #         callback=imp_thresh_callback
+                    #     )
+                    #     dpg.bind_item_font('imp_thresh', med_font)
+                    #     dpg.add_spacer(height=10)
 
-                        with dpg.group(horizontal=True):
-                            with dpg.child_window(
-                                height=(
-                                    cfg_get('viewport_height') - \
-                                    cfg_get('menu_bar_height') - \
-                                    cfg_get('imp_plot_height') - \
-                                    cfg_get('tab_bar_height') - \
-                                    75
-                                ),
-                                width=-1
-                            ):  # Set desired height and width
-                                with dpg.table(
-                                    tag='impedance_table',
-                                    header_row=True,
-                                    policy=dpg.mvTable_SizingFixedFit,
-                                ):
-                                    dpg.add_table_column(
-                                        label="Channel #",
-                                        width_stretch=True,
-                                        init_width_or_weight=0.3225
-                                    )
-                                    dpg.add_table_column(
-                                        label="Impedance",
-                                        width_stretch=True,
-                                        init_width_or_weight=0.5
-                                    )
-                                    dpg.add_table_column(
-                                        label="Plot",
-                                        width_stretch=True,
-                                        init_width_or_weight=0.2
-                                    )
-                                    dpg.add_table_column(
-                                        label="Include in CAR",
-                                        width_stretch=True,
-                                        init_width_or_weight=0.3
-                                    )
-                                    for chan in range(n_chans):
-                                        with dpg.table_row():
-                                            dpg.add_text(
-                                                f"Ch {chan:02d}", tag=f'tab_ch{chan}'
-                                            )
-                                            dpg.add_text(
-                                                "799.9 kOhm", tag=f'impedance_ch{chan}'
-                                            )
-                                            dpg.add_checkbox(
-                                                label="",
-                                                default_value=True,
-                                                tag=f'plot_{chan}',
-                                                callback=plot_bt_callback
-                                            )
-                                            dpg.add_checkbox(
-                                                label="",
-                                                default_value=True,
-                                                tag=f'include_{chan}',
-                                                callback=include_bt_callback,
-                                            )
-                                dpg.bind_item_font('impedance_table', med_font)
+                    #     with dpg.group(horizontal=True):
+                    #         with dpg.child_window(
+                    #             height=(
+                    #                 cfg_get('viewport_height') - \
+                    #                 cfg_get('menu_bar_height') - \
+                    #                 cfg_get('imp_plot_height') - \
+                    #                 cfg_get('tab_bar_height') - \
+                    #                 75
+                    #             ),
+                    #             width=-1
+                    #         ):  # Set desired height and width
+                    #             with dpg.table(
+                    #                 tag='impedance_table',
+                    #                 header_row=True,
+                    #                 policy=dpg.mvTable_SizingFixedFit,
+                    #             ):
+                    #                 dpg.add_table_column(
+                    #                     label="Channel #",
+                    #                     width_stretch=True,
+                    #                     init_width_or_weight=0.3225
+                    #                 )
+                    #                 dpg.add_table_column(
+                    #                     label="Impedance",
+                    #                     width_stretch=True,
+                    #                     init_width_or_weight=0.5
+                    #                 )
+                    #                 dpg.add_table_column(
+                    #                     label="Plot",
+                    #                     width_stretch=True,
+                    #                     init_width_or_weight=0.2
+                    #                 )
+                    #                 dpg.add_table_column(
+                    #                     label="Include in CAR",
+                    #                     width_stretch=True,
+                    #                     init_width_or_weight=0.3
+                    #                 )
+                    #                 for chan in range(n_chans):
+                    #                     with dpg.table_row():
+                    #                         dpg.add_text(
+                    #                             f"Ch {chan:02d}", tag=f'tab_ch{chan}'
+                    #                         )
+                    #                         dpg.add_text(
+                    #                             "799.9 kOhm", tag=f'impedance_ch{chan}'
+                    #                         )
+                    #                         dpg.add_checkbox(
+                    #                             label="",
+                    #                             default_value=True,
+                    #                             tag=f'plot_{chan}',
+                    #                             callback=plot_bt_callback
+                    #                         )
+                    #                         dpg.add_checkbox(
+                    #                             label="",
+                    #                             default_value=True,
+                    #                             tag=f'include_{chan}',
+                    #                             callback=include_bt_callback,
+                    #                         )
+                    #             dpg.bind_item_font('impedance_table', med_font)
 
-                        dpg.add_spacer(height=10)
-                        with dpg.group(tag='imp_plot_group'):
-                            with dpg.group(horizontal=True):
-                                dpg.add_colormap_scale(
-                                    tag='colormap_scale',
-                                    height=cfg_get('imp_plot_height'),
-                                    width=65,
-                                    colormap='jet_colormap',
-                                )
-                                with dpg.plot(
-                                    tag='imp_heatmap',
-                                    label="Electrode Impedances (kOhms)",
-                                    no_mouse_pos=True,
-                                    no_menus=True,
-                                    height=cfg_get('imp_plot_height'),
-                                    width=-1
-                                ):
-                                    dpg.add_plot_axis(
-                                        dpg.mvXAxis,
-                                        lock_min=True,
-                                        lock_max=True,
-                                        no_gridlines=True,
-                                        no_tick_marks=True,
-                                        no_tick_labels=True,
-                                    )
-                                    dpg.add_plot_axis(
-                                        dpg.mvYAxis,
-                                        tag='imp_plot_yaxis',
-                                        no_gridlines=True,
-                                        no_tick_marks=True,
-                                        no_tick_labels=True,
-                                        lock_min=True,
-                                        lock_max=True
-                                    )
+                    #     dpg.add_spacer(height=10)
+                    #     with dpg.group(tag='imp_plot_group'):
+                    #         with dpg.group(horizontal=True):
+                    #             dpg.add_colormap_scale(
+                    #                 tag='colormap_scale',
+                    #                 height=cfg_get('imp_plot_height'),
+                    #                 width=65,
+                    #                 colormap='jet_colormap',
+                    #             )
+                    #             with dpg.plot(
+                    #                 tag='imp_heatmap',
+                    #                 label="Electrode Impedances (kOhms)",
+                    #                 no_mouse_pos=True,
+                    #                 no_menus=True,
+                    #                 height=cfg_get('imp_plot_height'),
+                    #                 width=-1
+                    #             ):
+                    #                 dpg.add_plot_axis(
+                    #                     dpg.mvXAxis,
+                    #                     lock_min=True,
+                    #                     lock_max=True,
+                    #                     no_gridlines=True,
+                    #                     no_tick_marks=True,
+                    #                     no_tick_labels=True,
+                    #                 )
+                    #                 dpg.add_plot_axis(
+                    #                     dpg.mvYAxis,
+                    #                     tag='imp_plot_yaxis',
+                    #                     no_gridlines=True,
+                    #                     no_tick_marks=True,
+                    #                     no_tick_labels=True,
+                    #                     lock_min=True,
+                    #                     lock_max=True
+                    #                 )#
+
 
                     # FILTERING TAB
                     with dpg.tab(label='Filtering', tag='filtering_tab'):
@@ -1303,9 +1305,9 @@ with dpg.window(
                                 )
                         dpg.bind_item_font('spike_panel_excl_range', small_font)
 
-dpg.bind_colormap('imp_heatmap', 'jet_colormap')
-dpg.bind_item_font('imp_heatmap', small_font)
-dpg.bind_item_font('colormap_scale', small_font)
+# dpg.bind_colormap('imp_heatmap', 'jet_colormap')
+# dpg.bind_item_font('imp_heatmap', small_font)
+# dpg.bind_item_font('colormap_scale', small_font)
 
 dpg.bind_item_theme('plots_window', plots_window_theme)
 dpg.bind_item_theme('analog_plots_child', plots_window_theme)
@@ -1315,10 +1317,10 @@ dpg.bind_item_theme('analog_plots_group', analog_plots_theme)
 dpg.bind_item_theme('xaxis_labels', x_axis_theme)
 dpg.bind_item_theme('time_controls_group', time_cntrl_bar_theme)
 dpg.bind_item_theme('tabs_window', tabs_window_theme)
-dpg.bind_item_theme('channels_tab', channels_tab_theme)
+# dpg.bind_item_theme('channels_tab', channels_tab_theme)
 dpg.bind_item_theme('filtering_tab', filtering_tab_theme)
 dpg.bind_item_theme('spikes_tab', spikes_tab_theme)
-dpg.bind_item_theme('imp_plot_group', impedance_plots_theme)
+#dpg.bind_item_theme('imp_plot_group', impedance_plots_theme)
 dpg.bind_item_theme('spike_panels_plot',  spike_panel_theme)
 dpg.bind_item_theme('panel_plot_single', rounded_items_theme)
 dpg.bind_item_theme('spike_panel_sing_range', rounded_items_theme)

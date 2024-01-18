@@ -16,7 +16,8 @@ def sort_channels():
     """ _ """
     # sorts the channels by impedance
     for chan in range(cfg_get('max_amplif_channels')):
-        if data_get('impedances')[chan] > cfg_get('impedance_threshold') * 1000:
+        if data_get('impedances')[chan] > cfg_get('impedance_threshold') * 1000 or chan == 1 or chan > 2:
+            # hot fix -  in this RHD only 0 and 2 have real data
             set_ch_info(chan, 'incl', False)
             set_ch_info(chan, 'plot', False)
         else:
@@ -143,9 +144,9 @@ def refresh_plots(new_limits=None, filter_update=False, first_plot=False):
     prepare_spike_panels()
     plot_spikes()
 
-    if first_plot:
-        prepare_impedance_heatmap()
-        update_impedance_table()
+    # if first_plot:
+    #     prepare_impedance_heatmap()
+    #     update_impedance_table()
 
     dpg.split_frame()
     prepare_time_controls(new_limits)
@@ -241,9 +242,12 @@ def prepare_spike_panels(set_xaxis_limits=True):
     chans_with_spikes = []
     spaces = " " * cfg_get("panel_label_spaces")
     total_spikes = 0
-    for row in range(8):
+    # where do the values of 8 and 4 come from - 32 iterations but we might only want 16
+    for row in range(4):
         for col in range(4):
-            chan = electrode_mapping[row][col]
+            #chan = electrode_mapping[row][col]
+            chan  = 4* row + col
+            print(chan)
             if chan == panel_chan:
                 dpg.delete_item('spike_yaxis_tag', children_only=True)
                 # get crossings less than spike_range[1] and greater than spike_range[0]

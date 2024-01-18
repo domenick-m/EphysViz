@@ -60,9 +60,10 @@ def show_thresh_callback(sender, app_data, user_data):
         plot_x = np.array(plot_x) / 30
         panel_chan = int(dpg.get_value('spk_sco_ch').split('Ch ')[1])
 
-        for row in range(8):
+        for row in range(4):
             for col in range(4):
-                chan = electrode_mapping[row][col]
+                #chan = electrode_mapping[row][col]
+                chan = 4 * row + col
                 tag = f'panel_yaxis_row{row}_col{col}'
 
                 if data_get('chan_info')[chan]['incl']:
@@ -85,9 +86,10 @@ def show_thresh_callback(sender, app_data, user_data):
         dpg.bind_item_theme(dpg.last_item(), 'white_bar')
     else:
         dpg.delete_item('threshold_line')
-        for row in range(8):
+        for row in range(4):
             for col in range(4):
-                chan = electrode_mapping[row][col]
+                #chan = electrode_mapping[row][col]
+                chan = 4 * row + col
                 tag = f'panel_yaxis_row{row}_col{col}'
                 if dpg.get_alias_id(f'threshold_line_{chan}') in dpg.get_item_children(tag)[1]:
                     dpg.delete_item(f'threshold_line_{chan}')
